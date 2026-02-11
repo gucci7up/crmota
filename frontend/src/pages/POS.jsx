@@ -16,11 +16,26 @@ const POS = () => {
     const [isCuotasModalOpen, setIsCuotasModalOpen] = useState(false)
     const [numCuotas, setNumCuotas] = useState(3)
     const [cuotasData, setCuotasData] = useState([])
+    const [ivaRate, setIvaRate] = useState(0.16)
 
     useEffect(() => {
         fetchProducts()
         fetchClients()
+        fetchConfig()
     }, [])
+
+    const fetchConfig = async () => {
+        if (!user) return
+        const { data } = await supabase
+            .from('profiles')
+            .select('iva_percentage')
+            .eq('id', user.id)
+            .single()
+
+        if (data?.iva_percentage) {
+            setIvaRate(data.iva_percentage / 100)
+        }
+    }
 
     const fetchClients = async () => {
         const { data, error } = await supabase
@@ -69,7 +84,7 @@ const POS = () => {
     }
 
     const subtotal = cart.reduce((acc, item) => acc + (item.precio * item.cantidad), 0)
-    const tax = subtotal * 0.16
+    const tax = subtotal * ivaRate
     const total = subtotal + tax
 
     const generateCuotas = () => {
@@ -109,8 +124,7 @@ const POS = () => {
                 cliente_id: selectedClient?.id || null,
                 total: total,
                 metodo_pago: metodoPago,
-                estado_pago: metodoPago === 'cuotas' ? 'pendiente' : 'pagado',
-                fecha_venta: new Date().toISOString()
+                estado_pago: metodoPago === 'cuotas' ? 'pendiente' : 'pagado'
             }
 
             const { data: venta, error: ventaError } = await supabase
@@ -333,7 +347,7 @@ const POS = () => {
                             <span className="text-slate-900">${subtotal.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between text-sm text-slate-500 font-bold">
-                            <span>IVA (16%)</span>
+                            <span>IVA ({(ivaRate * 100).toFixed(0)}%)</span>
                             <span className="text-slate-900">${tax.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between text-2xl font-black text-slate-900 border-t border-slate-200 pt-5 mt-2">

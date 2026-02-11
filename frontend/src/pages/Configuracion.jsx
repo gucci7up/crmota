@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { Save, Loader2, Building2, MessageCircle, ShieldCheck, Globe, Mail, Phone, MapPin } from 'lucide-react'
+import { Save, Loader2, Building2, MessageCircle, ShieldCheck, Globe, Mail, Phone, MapPin, DollarSign } from 'lucide-react'
 
 const Configuracion = () => {
     const { user, profile } = useAuth()
@@ -12,6 +12,7 @@ const Configuracion = () => {
         empresa_email: '',
         empresa_telefono: '',
         empresa_direccion: '',
+        iva_percentage: 16,
         whatsapp_token: '',
         whatsapp_phone_id: '',
         whatsapp_verify_token: ''
@@ -38,6 +39,7 @@ const Configuracion = () => {
                 empresa_email: data.empresa_email || user.email || '',
                 empresa_telefono: data.empresa_telefono || '',
                 empresa_direccion: data.empresa_direccion || '',
+                iva_percentage: data.iva_percentage || 16,
                 whatsapp_token: data.whatsapp_token || '',
                 whatsapp_phone_id: data.whatsapp_phone_id || '',
                 whatsapp_verify_token: data.whatsapp_verify_token || ''
@@ -57,6 +59,7 @@ const Configuracion = () => {
                     empresa_email: config.empresa_email,
                     empresa_telefono: config.empresa_telefono,
                     empresa_direccion: config.empresa_direccion,
+                    iva_percentage: config.iva_percentage,
                     whatsapp_token: config.whatsapp_token,
                     whatsapp_phone_id: config.whatsapp_phone_id,
                     whatsapp_verify_token: config.whatsapp_verify_token,
@@ -145,6 +148,19 @@ const Configuracion = () => {
                                 className="w-full px-5 py-4 glass border-white/5 rounded-2xl focus:ring-2 focus:ring-indigo-500/50 outline-none text-white font-medium"
                                 value={config.empresa_direccion}
                                 onChange={(e) => setConfig({ ...config, empresa_direccion: e.target.value })}
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                <DollarSign size={12} /> Impuesto (%)
+                            </label>
+                            <input
+                                type="number"
+                                className="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500/20 outline-none text-slate-900 font-bold placeholder:text-slate-300 transition-all font-medium"
+                                value={config.iva_percentage}
+                                onChange={(e) => setConfig({ ...config, iva_percentage: e.target.value })}
+                                placeholder="16"
                             />
                         </div>
                     </div>
