@@ -25,11 +25,11 @@ const Clientes = () => {
     const [formData, setFormData] = useState(initialForm)
     const [isSaving, setIsSaving] = useState(false)
 
-    // Payment Modal State
-    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
-    const [selectedCuota, setSelectedCuota] = useState(null)
-    const [paymentAmount, setPaymentAmount] = useState('')
+    // Global Payment State
+    const [isGlobalPaymentModalOpen, setIsGlobalPaymentModalOpen] = useState(false)
+    const [globalPaymentAmount, setGlobalPaymentAmount] = useState('')
     const [isProcessingPayment, setIsProcessingPayment] = useState(false)
+
 
     useEffect(() => {
         fetchClientes()
@@ -146,54 +146,64 @@ const Clientes = () => {
         }
     }
 
-    const openPaymentModal = (cuota) => {
-        setSelectedCuota(cuota)
-        setPaymentAmount(Number(cuota.monto) - Number(cuota.monto_pagado)) // Default to remaining amount
-        setIsPaymentModalOpen(true)
-    }
-
-    const handleProcessPayment = async (e) => {
+    const handleProcessGlobalPayment = async (e) => {
         e.preventDefault()
-        if (!selectedCuota) return
+        const amountToPay = Number(globalPaymentAmount)
 
-        const amount = Number(paymentAmount)
-        const remaining = Number(selectedCuota.monto) - Number(selectedCuota.monto_pagado)
+        if (amountToPay <= 0) {
+            alert('El monto debe ser mayor a 0')
+            return
+        }
 
-        if (amount <= 0 || amount > remaining) {
-            alert('El monto debe ser mayor a 0 y no puede exceder la deuda pendiente.')
+        if (amountToPay > clientAccountData.totalDebt + 1) { // +1 margin for float tolerance
+            alert('El monto excede la deuda total del cliente.')
             return
         }
 
         setIsProcessingPayment(true)
         try {
-            const newTotalPaid = Number(selectedCuota.monto_pagado) + amount
-            const newStatus = newTotalPaid >= Number(selectedCuota.monto) ? 'pagado' : 'pendiente'
+            let remainingPayment = amountToPay
+            // Filter only pending/vencido cuotas and sort by oldest first
+            const pendingCuotas = clientAccountData.cuotas
+                .filter(c => c.estado !== 'pagado')
+                .sort((a, b) => new Date(a.fecha_vencimiento) - new Date(b.fecha_vencimiento))
 
-            const { error } = await supabase
-                .from('cuotas')
-                .update({
-                    monto_pagado: newTotalPaid,
-                    estado: newStatus
-                })
-                .eq('id', selectedCuota.id)
+            for (const cuota of pendingCuotas) {
+                if (remainingPayment <= 0.01) break // Stop if depleted (epsilon)
 
-            if (error) throw error
+                const deudaCuota = Number(cuota.monto) - Number(cuota.monto_pagado || 0)
+                // Determine how much we can pay towards this cuota
+                const pagoAplicable = Math.min(remainingPayment, deudaCuota)
 
-            // Check if all cuotas are paid to update Sale status
-            if (newStatus === 'pagado') {
-                // Check siblings
-                const { data: siblings } = await supabase
+                const newTotalPaid = Number(cuota.monto_pagado || 0) + pagoAplicable
+
+                // Determine if this cuota is now fully paid
+                // Use a small epsilon for float comparison logic if needed, but here simple >= check is usually fine if we derived pagoAplicable correctly.
+                const isFullyPaid = newTotalPaid >= (Number(cuota.monto) - 0.01)
+                const newStatus = isFullyPaid ? 'pagado' : 'pendiente'
+
+                // Update DB
+                const { error } = await supabase
                     .from('cuotas')
-                    .select('estado')
-                    .eq('venta_id', selectedCuota.venta_id)
+                    .update({
+                        monto_pagado: newTotalPaid,
+                        estado: newStatus
+                    })
+                    .eq('id', cuota.id)
 
-                // Note: immediate consistency check might miss this update if not careful, but for UX simple check is enough.
+                if (error) throw error
+
+                // Subtract from our wallet
+                remainingPayment -= pagoAplicable
             }
 
-            setIsPaymentModalOpen(false)
+            setIsGlobalPaymentModalOpen(false)
+            setGlobalPaymentAmount('')
+            alert('Abono registrado correctamente')
             fetchClientAccount(selectedAccountClient) // Refresh UI
+
         } catch (error) {
-            console.error('Error paying cuota:', error)
+            console.error('Error processing payment:', error)
             alert('Error al procesar el pago: ' + error.message)
         } finally {
             setIsProcessingPayment(false)
@@ -446,86 +456,64 @@ const Clientes = () => {
                                 </div>
                             ) : (
                                 <div className="space-y-8">
-                                    {/* Resumen Global */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="p-6 bg-rose-50 rounded-3xl border border-rose-100 flex items-center gap-4">
-                                            <div className="p-3 bg-rose-200/50 text-rose-700 rounded-2xl">
-                                                <TrendingDown size={28} />
-                                            </div>
-                                            <div>
-                                                <p className="text-xs font-black text-rose-400 uppercase tracking-widest">Deuda Total Pendiente</p>
-                                                <p className="text-3xl font-black text-rose-700">${clientAccountData.totalDebt.toLocaleString('es-CL')}</p>
-                                            </div>
+                                    {/* Actions Header - NEW GLOBAL PAYMENT BUTTON */}
+                                    <div className="flex flex-col md:flex-row justify-between items-center bg-indigo-50 p-8 rounded-[2.5rem] border border-indigo-100 gap-6">
+                                        <div className="text-center md:text-left">
+                                            <p className="text-xs font-black text-indigo-400 uppercase tracking-widest mb-2">Deuda Total Pendiente</p>
+                                            <p className="text-5xl font-black text-indigo-900">${clientAccountData.totalDebt.toLocaleString('es-CL')}</p>
                                         </div>
-                                        <div className="p-6 bg-emerald-50 rounded-3xl border border-emerald-100 flex items-center gap-4">
-                                            <div className="p-3 bg-emerald-200/50 text-emerald-700 rounded-2xl">
-                                                <CheckCircle2 size={28} />
-                                            </div>
-                                            <div>
-                                                <p className="text-xs font-black text-emerald-400 uppercase tracking-widest">Total Pagado Histórico</p>
-                                                <p className="text-3xl font-black text-emerald-700">${clientAccountData.totalPaid.toLocaleString('es-CL')}</p>
-                                            </div>
-                                        </div>
+                                        <button
+                                            onClick={() => setIsGlobalPaymentModalOpen(true)}
+                                            disabled={clientAccountData.totalDebt <= 0}
+                                            className="w-full md:w-auto px-10 py-5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-2xl font-black shadow-xl shadow-indigo-600/20 transition-all active:scale-95 flex items-center justify-center gap-4 text-lg"
+                                        >
+                                            <DollarSign size={28} />
+                                            REGISTRAR ABONO
+                                        </button>
                                     </div>
 
-                                    {/* Lista de Cuotas */}
+                                    {/* Lista de Cuotas (Visual Only) */}
                                     <div className="space-y-4">
-                                        <h3 className="text-lg font-black text-slate-900 border-b border-slate-100 pb-2">Cuotas y Movimientos</h3>
+                                        <h3 className="text-lg font-black text-slate-900 border-b border-slate-100 pb-2">Detalle de Cuotas</h3>
 
                                         {clientAccountData.cuotas.length === 0 ? (
                                             <div className="py-12 text-center text-slate-400 italic bg-gray-50 rounded-2xl border border-gray-100">
-                                                No hay historial de crédito para este cliente.
+                                                Cliente al día. No hay deuda pendiente.
                                             </div>
                                         ) : (
                                             <div className="space-y-3">
                                                 {clientAccountData.cuotas.map((cuota, idx) => (
-                                                    <div key={idx} className={`p-4 rounded-2xl border flex items-center justify-between transition-all ${cuota.estado === 'pagado'
+                                                    <div key={idx} className={`p-5 rounded-2xl border flex items-center justify-between transition-all ${cuota.estado === 'pagado'
                                                             ? 'bg-emerald-50/30 border-emerald-100'
                                                             : cuota.estado === 'vencido'
                                                                 ? 'bg-rose-50/50 border-rose-100'
                                                                 : 'bg-white border-slate-200'
                                                         }`}>
-                                                        <div className="flex items-center gap-4">
-                                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold ${cuota.estado === 'pagado' ? 'bg-emerald-100 text-emerald-600' : 'bg-indigo-50 text-indigo-600'
+                                                        <div className="flex items-center gap-5">
+                                                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-lg ${cuota.estado === 'pagado' ? 'bg-emerald-100 text-emerald-600'
+                                                                    : cuota.estado === 'vencido' ? 'bg-rose-100 text-rose-600'
+                                                                        : 'bg-slate-100 text-slate-500'
                                                                 }`}>
                                                                 {idx + 1}
                                                             </div>
                                                             <div>
-                                                                <p className="font-bold text-slate-900">Vencimiento: {new Date(cuota.fecha_vencimiento).toLocaleDateString()}</p>
-                                                                <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Venta #{cuota.venta_id.slice(0, 8)} • {new Date(cuota.venta_date).toLocaleDateString()}</p>
+                                                                <p className="font-bold text-slate-900 text-lg">Vencimiento: {new Date(cuota.fecha_vencimiento).toLocaleDateString()}</p>
+                                                                <p className="text-xs text-slate-400 uppercase tracking-wider font-bold">Total: ${Number(cuota.monto).toLocaleString('es-CL')}</p>
                                                             </div>
                                                         </div>
 
-                                                        <div className="flex items-center gap-6">
-                                                            <div className="text-right">
-                                                                <p className="text-lg font-black text-slate-900">${Number(cuota.monto).toLocaleString('es-CL')}</p>
-                                                                <div className="flex flex-col items-end">
-                                                                    <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full mb-1 ${cuota.estado === 'pagado' ? 'bg-emerald-100 text-emerald-600' :
-                                                                            cuota.estado === 'vencido' ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-600'
-                                                                        }`}>
-                                                                        {cuota.estado}
-                                                                    </span>
-                                                                    {cuota.monto_pagado > 0 && cuota.estado !== 'pagado' && (
-                                                                        <span className="text-[10px] font-bold text-emerald-600">Abonado: ${Number(cuota.monto_pagado).toLocaleString('es-CL')}</span>
-                                                                    )}
-                                                                </div>
-
+                                                        <div className="text-right">
+                                                            <p className="text-2xl font-black text-slate-900">${(Number(cuota.monto) - Number(cuota.monto_pagado || 0)).toLocaleString('es-CL')}</p>
+                                                            <div className="flex flex-col items-end gap-1">
+                                                                <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${cuota.estado === 'pagado' ? 'bg-emerald-100 text-emerald-600' :
+                                                                        cuota.estado === 'vencido' ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-600'
+                                                                    }`}>
+                                                                    {cuota.estado === 'pagado' ? 'PAGADO' : 'PENDIENTE'}
+                                                                </span>
+                                                                {cuota.monto_pagado > 0 && cuota.estado !== 'pagado' && (
+                                                                    <span className="text-[10px] font-bold text-emerald-600">Abonado: ${Number(cuota.monto_pagado).toLocaleString('es-CL')}</span>
+                                                                )}
                                                             </div>
-
-                                                            {cuota.estado !== 'pagado' && (
-                                                                <button
-                                                                    onClick={() => openPaymentModal(cuota)}
-                                                                    className="p-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-500 shadow-lg shadow-indigo-600/20 active:scale-95"
-                                                                    title="Abonar / Pagar Cuota"
-                                                                >
-                                                                    <DollarSign size={20} />
-                                                                </button>
-                                                            )}
-                                                            {cuota.estado === 'pagado' && (
-                                                                <div className="p-3 text-emerald-500">
-                                                                    <CheckCircle2 size={24} />
-                                                                </div>
-                                                            )}
                                                         </div>
                                                     </div>
                                                 ))}
@@ -539,52 +527,43 @@ const Clientes = () => {
                 </div>
             )}
 
-            {/* Payment Modal */}
-            {isPaymentModalOpen && selectedCuota && (
+            {/* Modal de Abono Global */}
+            {isGlobalPaymentModalOpen && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
                     <div className="bg-white w-full max-w-lg rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
                         <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                             <div>
-                                <h2 className="text-2xl font-black text-slate-900">Registrar Pago</h2>
-                                <p className="text-sm text-slate-500 font-bold tracking-tight">Cuota #{selectedCuota.id.slice(0, 4)}</p>
+                                <h2 className="text-2xl font-black text-slate-900">Registrar Abono</h2>
+                                <p className="text-sm text-slate-500 font-bold tracking-tight">Abonar a la deuda general</p>
                             </div>
-                            <button onClick={() => setIsPaymentModalOpen(false)} className="p-3 bg-white border border-slate-100 rounded-2xl text-slate-400 hover:text-slate-900 transition-colors shadow-sm">
+                            <button onClick={() => setIsGlobalPaymentModalOpen(false)} className="p-3 bg-white border border-slate-100 rounded-2xl text-slate-400 hover:text-slate-900 transition-colors shadow-sm">
                                 <X size={24} />
                             </button>
                         </div>
-                        <form onSubmit={handleProcessPayment} className="p-8 space-y-6">
-                            <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 space-y-4">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-xs font-black text-slate-500 uppercase">Monto Total Cuota</span>
-                                    <span className="text-lg font-black text-slate-900">${Number(selectedCuota.monto).toLocaleString('es-CL')}</span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-xs font-black text-slate-500 uppercase">Pagado hasta ahora</span>
-                                    <span className="text-lg font-black text-emerald-600">${Number(selectedCuota.monto_pagado).toLocaleString('es-CL')}</span>
-                                </div>
-                                <div className="border-t border-slate-200 pt-3 flex justify-between items-center">
-                                    <span className="text-xs font-black text-indigo-500 uppercase">Saldo Pendiente</span>
-                                    <span className="text-2xl font-black text-indigo-600">${(Number(selectedCuota.monto) - Number(selectedCuota.monto_pagado)).toLocaleString('es-CL')}</span>
-                                </div>
+                        <form onSubmit={handleProcessGlobalPayment} className="p-8 space-y-6">
+                            <div className="p-6 bg-indigo-50 rounded-3xl border border-indigo-100 text-center space-y-2">
+                                <p className="text-xs font-black text-indigo-400 uppercase tracking-widest">Deuda Total a Pagar</p>
+                                <p className="text-4xl font-black text-indigo-900">${clientAccountData.totalDebt.toLocaleString('es-CL')}</p>
                             </div>
 
                             <div className="space-y-4">
-                                <label className="text-xs font-black text-slate-400 uppercase tracking-widest block">Monto a Abonar</label>
+                                <label className="text-xs font-black text-slate-400 uppercase tracking-widest block">Monto del Abono</label>
                                 <div className="relative">
                                     <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={24} />
                                     <input
                                         type="number"
                                         min="1"
-                                        max={Number(selectedCuota.monto) - Number(selectedCuota.monto_pagado)}
+                                        max={clientAccountData.totalDebt + 1}
                                         required
                                         autoFocus
                                         className="w-full pl-14 pr-4 py-5 bg-white border border-slate-200 rounded-2xl text-3xl font-black text-slate-900 focus:ring-2 focus:ring-indigo-500/20 outline-none"
-                                        value={paymentAmount}
-                                        onChange={(e) => setPaymentAmount(e.target.value)}
+                                        value={globalPaymentAmount}
+                                        onChange={(e) => setGlobalPaymentAmount(e.target.value)}
+                                        placeholder="0"
                                     />
                                 </div>
                                 <p className="text-xs text-center text-slate-400 font-medium">
-                                    Ingrese el monto que el cliente está pagando en este momento.
+                                    El sistema distribuirá este monto automáticamente entre las cuotas más antiguas.
                                 </p>
                             </div>
 
