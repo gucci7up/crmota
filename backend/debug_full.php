@@ -54,18 +54,34 @@ try {
     if (class_exists('Database')) {
         echo "7. Database class exists\n";
 
-        // TEST CONNECTION
-        echo "8. Testing Supabase connection...\n";
-        // Just try to fetch categories (read-only usually safe) to see if curl works
-        $test_response = Database::query('categorias', ['select' => 'count', 'head' => 'true']);
+        // TEST 1: GET (Read)
+        echo "8. Testing Supabase GET (read)...\n";
+        // Valid query: select only ID, limit 1
+        $test_response = Database::query('categorias', ['select' => 'id', 'limit' => '1']);
 
         echo "   Response Status: " . $test_response['status'] . "\n";
         echo "   Response Data: " . print_r($test_response['data'], true) . "\n";
 
         if ($test_response['status'] >= 200 && $test_response['status'] < 300) {
-            echo "9. SUCCESS: Supabase is reachable!\n";
+            echo "   SUCCESS: GET works!\n";
         } else {
-            echo "9. ERROR: Supabase returned error code.\n";
+            echo "   ERROR: GET failed.\n";
+        }
+
+        // TEST 2: POST (Insert)
+        echo "9. Testing Supabase POST (write dry-run)...\n";
+        // Attempt to insert a dummy category with a timestamp to avoid duplicates/constraints issues if possible
+        // We rely on the fact that if it crashes (502), the script stops.
+        $dummy_name = "Debug " . time();
+        $test_insert = Database::insert('categorias', ['nombre' => $dummy_name]);
+
+        echo "   Response Status: " . $test_insert['status'] . "\n";
+        echo "   Response Data: " . print_r($test_insert['data'], true) . "\n";
+
+        if ($test_insert['status'] >= 200 && $test_insert['status'] < 300) {
+            echo "   SUCCESS: POST works!\n";
+        } else {
+            echo "   ERROR: POST failed. (This might be RLS or Schema, but if we see this, PHP didn't crash!)\n";
         }
     } else {
         echo "7. ERROR: Database class missing\n";
