@@ -52,6 +52,20 @@ if (function_exists('curl_init')) {
     $status['curl'] = "MISSING";
 }
 
+// 5b. Check mbstring extension
+if (function_exists('mb_strlen')) {
+    $status['mbstring'] = "INSTALLED";
+} else {
+    $status['mbstring'] = "MISSING";
+}
+
+// 5c. Check getallheaders
+if (function_exists('getallheaders')) {
+    $status['getallheaders'] = "EXISTS";
+} else {
+    $status['getallheaders'] = "MISSING (Polyfill needed)";
+}
+
 // 6. Test DB Query
 try {
     // Need JWT to query? Database::query uses internal keys.
