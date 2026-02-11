@@ -47,6 +47,9 @@ register_shutdown_function(function () {
         if (ob_get_length())
             ob_clean();
 
+        $fatalErrorMsg = "Fatal Error in " . $error['file'] . " on line " . $error['line'] . ": " . $error['message'];
+        error_log($fatalErrorMsg); // Send to stderr/docker logs
+
         http_response_code(500);
         header("Content-Type: application/json");
         echo json_encode([

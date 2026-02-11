@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { Save, Loader2, Building2, MessageCircle, ShieldCheck, Globe, Mail, Phone, MapPin, DollarSign } from 'lucide-react'
+import { Save, Loader2, Building2, MessageCircle, ShieldCheck, Globe, Mail, Phone, MapPin, DollarSign, Printer } from 'lucide-react'
 
 const Configuracion = () => {
     const { user, profile } = useAuth()
@@ -17,6 +17,9 @@ const Configuracion = () => {
         whatsapp_phone_id: '',
         whatsapp_verify_token: ''
     })
+
+    // Configuración Local
+    const [printerFormat, setPrinterFormat] = useState(localStorage.getItem('printerFormat') || 'a4')
 
     useEffect(() => {
         if (user) {
@@ -216,6 +219,45 @@ const Configuracion = () => {
                                 Estos datos son necesarios para que el sistema pueda enviar notificaciones automáticas de ventas a tus clientes vía WhatsApp.
                             </p>
                         </div>
+                    </div>
+                </div>
+
+                {/* Configuración Local (Impresora) */}
+                <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 space-y-8 shadow-sm lg:col-span-2">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-orange-50 text-orange-600 rounded-2xl border border-orange-100 shadow-sm">
+                            <Printer size={24} />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-black text-slate-900">Configuración de Impresión (Local)</h2>
+                            <p className="text-sm text-slate-500 font-medium">Estas opciones se guardan en este dispositivo.</p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {[
+                            { id: 'a4', label: 'Carta / A4 (Estándar)', desc: 'Para impresoras normales' },
+                            { id: '80mm', label: 'Ticket 80mm', desc: 'Térmica estándar (Punto de Venta)' },
+                            { id: '58mm', label: 'Ticket 58mm', desc: 'Térmica pequeña (Portátil)' }
+                        ].map((format) => (
+                            <label key={format.id} className={`relation cursor-pointer p-6 rounded-2xl border-2 transition-all hover:scale-[1.02] ${printerFormat === format.id ? 'border-indigo-500 bg-indigo-50/50' : 'border-slate-100 bg-slate-50 hover:border-indigo-200'}`}>
+                                <div className="flex items-center gap-3 mb-2">
+                                    <input
+                                        type="radio"
+                                        name="printerFormat"
+                                        value={format.id}
+                                        checked={printerFormat === format.id}
+                                        onChange={(e) => {
+                                            setPrinterFormat(e.target.value)
+                                            localStorage.setItem('printerFormat', e.target.value)
+                                        }}
+                                        className="w-5 h-5 text-indigo-600 border-slate-300 focus:ring-indigo-500"
+                                    />
+                                    <span className="font-black text-slate-900">{format.label}</span>
+                                </div>
+                                <p className="text-xs text-slate-500 font-medium pl-8">{format.desc}</p>
+                            </label>
+                        ))}
                     </div>
                 </div>
 

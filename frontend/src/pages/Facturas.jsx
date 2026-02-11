@@ -16,10 +16,14 @@ const Facturas = () => {
     // Invoice Modal State
     const [selectedInvoice, setSelectedInvoice] = useState(null)
     const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false)
+    const [printerFormat, setPrinterFormat] = useState('a4')
     const invoiceRef = useRef(null)
 
     useEffect(() => {
         fetchSales()
+        // Load printer preference
+        const savedFormat = localStorage.getItem('printerFormat')
+        if (savedFormat) setPrinterFormat(savedFormat)
     }, [])
 
     const fetchSales = async () => {
@@ -215,7 +219,7 @@ const Facturas = () => {
 
                         {/* Printable Content */}
                         <div ref={invoiceRef}>
-                            <InvoiceTemplate venta={selectedInvoice} />
+                            <InvoiceTemplate venta={selectedInvoice} format={printerFormat} />
                         </div>
                     </div>
                 </div>
