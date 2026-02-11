@@ -53,13 +53,27 @@ try {
 try {
     if (class_exists('Database')) {
         echo "7. Database class exists\n";
+
+        // TEST CONNECTION
+        echo "8. Testing Supabase connection...\n";
+        // Just try to fetch categories (read-only usually safe) to see if curl works
+        $test_response = Database::query('categorias', ['select' => 'count', 'head' => 'true']);
+
+        echo "   Response Status: " . $test_response['status'] . "\n";
+        echo "   Response Data: " . print_r($test_response['data'], true) . "\n";
+
+        if ($test_response['status'] >= 200 && $test_response['status'] < 300) {
+            echo "9. SUCCESS: Supabase is reachable!\n";
+        } else {
+            echo "9. ERROR: Supabase returned error code.\n";
+        }
     } else {
         echo "7. ERROR: Database class missing\n";
     }
 } catch (Throwable $e) {
-    echo "7. CRASH checking Database class: " . $e->getMessage() . "\n";
+    echo "7. CRASH checking Database class or Connection: " . $e->getMessage() . "\n";
     exit;
 }
 
-echo "8. All checks passed. The server environment seems OK.\n";
-echo "If index.php fails, it might be the routing logic or specific controller.\n";
+echo "10. All checks passed. The server environment seems OK.\n";
+
