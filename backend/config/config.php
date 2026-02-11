@@ -7,7 +7,13 @@ require_once __DIR__ . '/../vendor/autoload.php';
 function getEnvVar($key, $default = '')
 {
     $val = getenv($key);
-    return ($val !== false) ? $val : ($_ENV[$key] ?? $default);
+    if ($val !== false)
+        return $val;
+    if (isset($_ENV[$key]))
+        return $_ENV[$key];
+    if (isset($_SERVER[$key]))
+        return $_SERVER[$key];
+    return $default;
 }
 
 // Load env if .env exists (dev mode)
