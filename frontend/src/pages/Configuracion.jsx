@@ -52,26 +52,22 @@ const Configuracion = () => {
         e.preventDefault()
         setIsSaving(true)
         try {
+            // TEMPORARY FIX: Only saving IVA as requested by user to debug
+            const updates = {
+                iva_percentage: config.iva_percentage,
+                updated_at: new Date()
+            }
+
             const { error } = await supabase
                 .from('profiles')
-                .update({
-                    empresa_nombre: config.empresa_nombre,
-                    empresa_email: config.empresa_email,
-                    empresa_telefono: config.empresa_telefono,
-                    empresa_direccion: config.empresa_direccion,
-                    iva_percentage: config.iva_percentage,
-                    whatsapp_token: config.whatsapp_token,
-                    whatsapp_phone_id: config.whatsapp_phone_id,
-                    whatsapp_verify_token: config.whatsapp_verify_token,
-                    updated_at: new Date()
-                })
+                .update(updates)
                 .eq('id', user.id)
 
             if (error) throw error
-            alert('Configuración guardada correctamente')
+            alert('Configuración (IVA) guardada correctamente')
         } catch (error) {
             console.error('Error saving config:', error)
-            alert('Error al guardar configuración. Asegúrate de que las columnas existan en la tabla profiles.')
+            alert(`Error: ${error.message || error.details || error.hint || 'Revise la consola'}`)
         } finally {
             setIsSaving(false)
         }

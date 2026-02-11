@@ -211,7 +211,10 @@ const POS = () => {
             <div className="flex-1 flex flex-col min-w-0">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                     <div>
-                        <h1 className="text-3xl font-black text-slate-900 tracking-tight">Punto de Venta</h1>
+                        <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                            Punto de Venta
+                            <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full border border-indigo-200">v2.0 (Mosaico)</span>
+                        </h1>
                         <p className="text-slate-500 font-medium">Selecciona productos para la venta</p>
                     </div>
                     <div className="relative w-full md:w-96 group">
