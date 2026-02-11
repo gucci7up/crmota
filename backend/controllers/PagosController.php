@@ -24,11 +24,17 @@ class PagosController
 
     private function registrarAbono($user)
     {
+        // 1. Validar Entrada
         $input = json_decode(file_get_contents("php://input"), true);
+        if (!$input) {
+            http_response_code(400);
+            echo json_encode(["error" => "Invalid JSON Input"]);
+            return;
+        }
 
         $cliente_id = $input['cliente_id'] ?? null;
         $monto_abono = floatval($input['monto'] ?? 0);
-        $metodo_pago = $input['metodo_pago'] ?? 'efectivo'; // efectivo, transferencia, tarjeta
+        $metodo_pago = $input['metodo_pago'] ?? 'efectivo';
         $referencia = $input['referencia'] ?? '';
 
         if (!$cliente_id || $monto_abono <= 0) {
@@ -38,52 +44,45 @@ class PagosController
         }
 
         try {
-            // URL params: select=id,cuotas(*)&cliente_id=eq.UUID&metodo_pago=eq.cuotas
-            // Note: We use manual cURL here for precise control over the nested select syntax
-            $url = SUPABASE_URL . "/rest/v1/ventas?select=id,cuotas(*)&cliente_id=eq.$cliente_id&metodo_pago=eq.cuotas";
-
-            $ch = curl_init($url);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, [
-                "apikey: " . SUPABASE_KEY,
-                "Authorization: Bearer " . SUPABASE_KEY,
+            // 2. Obtener Ventas del Cliente (Solo ID)
+            // Filtramos ventas que son a crédito ('cuotas')
+            $ventasResponse = Database::query('ventas', [
+                'select' => 'id',
+                'cliente_id' => 'eq.' . $cliente_id,
+                'metodo_pago' => 'eq.cuotas'
             ]);
-            $resp = curl_exec($ch);
-            $curlError = curl_error($ch);
-            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
 
-            if ($resp === false) {
-                throw new Exception("Error connecting to Supabase: " . $curlError);
+            if ($ventasResponse['status'] >= 400) {
+                throw new Exception("Error al obtener ventas: " . json_encode($ventasResponse));
             }
 
-            if ($httpCode >= 400) {
-                throw new Exception("Supabase Error ($httpCode): " . $resp);
+            $ventas = $ventasResponse['data'];
+            if (empty($ventas)) {
+                echo json_encode(["message" => "El cliente no tiene ventas a crédito", "monto_abonado" => 0, "detalle" => []]);
+                return;
             }
 
-            $ventas = json_decode($resp, true);
+            // Extraer IDs de ventas
+            $ventaIds = array_column($ventas, 'id');
 
-            if (!is_array($ventas)) {
-                throw new Exception("Invalid response from Supabase when fetching debt details: " . substr($resp, 0, 100));
+            // 3. Obtener Cuotas Pendientes de esas Ventas
+            // Supabase soporta filtro "in" con formato: (val1,val2,val3)
+            $ventaIdsString = '(' . implode(',', $ventaIds) . ')';
+
+            $cuotasResponse = Database::query('cuotas', [
+                'select' => 'id, monto, monto_pagado, fecha_vencimiento, estado, venta_id',
+                'venta_id' => 'in.' . $ventaIdsString,
+                'estado' => 'neq.pagado',
+                'order' => 'fecha_vencimiento.asc'
+            ]);
+
+            if ($cuotasResponse['status'] >= 400) {
+                throw new Exception("Error al obtener cuotas: " . json_encode($cuotasResponse));
             }
 
-            $allCuotas = [];
-            foreach ($ventas as $venta) {
-                if (!empty($venta['cuotas']) && is_array($venta['cuotas'])) {
-                    foreach ($venta['cuotas'] as $c) {
-                        if ($c['estado'] !== 'pagado') {
-                            $c['venta_id'] = $venta['id']; // Inject parent venta_id
-                            $allCuotas[] = $c;
-                        }
-                    }
-                }
-            }
+            $allCuotas = $cuotasResponse['data'];
 
-            // Ordenar por vencimiento (antiguas primero)
-            usort($allCuotas, function ($a, $b) {
-                return strtotime($a['fecha_vencimiento']) - strtotime($b['fecha_vencimiento']);
-            });
-
+            // 4. Procesar Pagos (FIFO)
             $remanente = $monto_abono;
             $pagosRealizados = [];
 
@@ -92,30 +91,33 @@ class PagosController
                     break;
 
                 $deuda_actual = floatval($cuota['monto']) - floatval($cuota['monto_pagado'] ?? 0);
-
-                // Cuanto pagamos de esta cuota
                 $pago_aplicable = min($remanente, $deuda_actual);
 
-                // Nuevo estado
+                // Calcular nuevo estado
                 $nuevo_pagado = floatval($cuota['monto_pagado'] ?? 0) + $pago_aplicable;
                 $es_total = $nuevo_pagado >= (floatval($cuota['monto']) - 0.01);
                 $nuevo_estado = $es_total ? 'pagado' : 'pendiente';
 
-                // Actualizar cuota en BD
-                Database::update('cuotas', [
+                // Update Cuota
+                $updateRes = Database::update('cuotas', [
                     'monto_pagado' => $nuevo_pagado,
                     'estado' => $nuevo_estado
                 ], ['id' => 'eq.' . $cuota['id']]);
 
-                // Registrar en historial (Individual por cuota para trazabilidad exacta)
+                if ($updateRes['status'] >= 400) {
+                    // Log error but continue? No, simpler to stop/throw to avoid partial inconsistencies without transaction
+                    throw new Exception("Error updating cuota " . $cuota['id']);
+                }
+
+                // Insert into Historial
                 Database::insert('historial_pagos', [
                     'venta_id' => $cuota['venta_id'],
                     'cuota_id' => $cuota['id'],
                     'cliente_id' => $cliente_id,
-                    'usuario_id' => $user['sub'] ?? null, // ID del usuario autenticado
+                    'usuario_id' => $user['sub'] ?? null,
                     'monto' => $pago_aplicable,
                     'metodo_pago' => $metodo_pago,
-                    'referencia' => $referencia . " (Abono Global)"
+                    'referencia' => $referencia . ' (Auto)'
                 ]);
 
                 $pagosRealizados[] = [
@@ -127,16 +129,20 @@ class PagosController
                 $remanente -= $pago_aplicable;
             }
 
+            // 5. Respuesta Exitosa
             echo json_encode([
                 "message" => "Abono procesado correctamente",
                 "monto_abonado" => $monto_abono - $remanente,
-                "remanente_favor" => $remanente, // Si pagó de más, queda como saldo a favor (future feature)
+                "remanente_favor" => $remanente,
                 "detalle" => $pagosRealizados
             ]);
 
         } catch (Exception $e) {
             http_response_code(500);
-            echo json_encode(["error" => "Error interno al procesar pago: " . $e->getMessage()]);
+            echo json_encode([
+                "error" => "Error interno al procesar pago",
+                "details" => $e->getMessage()
+            ]);
         }
     }
 }
