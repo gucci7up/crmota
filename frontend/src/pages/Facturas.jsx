@@ -58,28 +58,7 @@ const Facturas = () => {
         setLoading(false)
     }
 
-    const handlePrintBrowser = useReactToPrint({
-        content: () => invoiceRef.current,
-        documentTitle: `Factura-${selectedInvoice?.id || 'Venta'}`,
-    })
 
-    const handlePrint = async () => {
-        const mode = localStorage.getItem('printMode') || 'browser';
-
-        if (mode === 'bluetooth') {
-            try {
-                await printInvoiceBluetooth(selectedInvoice, printerFormat);
-            } catch (error) {
-                console.error("Bluetooth print error:", error);
-                alert("Error de impresión Bluetooth: " + (error.message || error));
-                if (confirm("¿Desea imprimir usando el navegador (PDF)?")) {
-                    handlePrintBrowser();
-                }
-            }
-        } else {
-            handlePrintBrowser();
-        }
-    }
 
     const openInvoiceModal = (venta) => {
         setSelectedInvoice(venta)
