@@ -179,8 +179,13 @@ const Clientes = () => {
 
             // FAILSAFE STRATEGY: Hit index.php directly with action param
             // This bypasses Nginx sub-path routing issues
-            const apiBase = import.meta.env.VITE_API_URL.replace(/\/api\/?$/, ''); // Remove trailing /api if present
-            const response = await fetch(`${apiBase}/index.php?action=process_payment`, {
+            // Fix: Handle undefined VITE_API_URL safely
+            const rawApiUrl = import.meta.env.VITE_API_URL || '/api';
+            const apiBase = rawApiUrl.replace(/\/api\/?$/, '');
+            // Ensure we target /api/index.php explicitly since nginx maps /api to backend root
+            const targetUrl = apiBase ? `${apiBase}/api/index.php?action=process_payment` : '/api/index.php?action=process_payment';
+
+            const response = await fetch(targetUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
