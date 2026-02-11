@@ -13,6 +13,7 @@ const InvoiceTemplate = forwardRef(({ venta, format = 'a4' }, ref) => {
     })
 
     const isCredito = venta.metodo_pago === 'cuotas'
+    const isThermal = format === '80mm' || format === '58mm'
 
     // Safe HEX colors for html2canvas compatibility (Tailwind 4 uses oklch which fails)
     const colors = {
