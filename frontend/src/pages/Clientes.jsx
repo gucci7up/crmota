@@ -163,60 +163,92 @@ const Clientes = () => {
             return
         }
 
-        if (amountToPay > clientAccountData.totalDebt + 1) { // +1 margin for float tolerance
+        if (amountToPay > clientAccountData.totalDebt + 10) { // Increased tolerance
             alert('El monto excede la deuda total del cliente.')
             return
         }
 
         setIsProcessingPayment(true)
         try {
-            // Check auth session
             const { data: { session } } = await supabase.auth.getSession()
             if (!session) {
-                alert('Sesión expirada. Por favor inicie sesión nuevamente.')
+                alert('Sesión expirada.')
                 return
             }
 
-            // FAILSAFE STRATEGY: Hit index.php directly with action param
-            // This bypasses Nginx sub-path routing issues
-            // Fix: Handle undefined VITE_API_URL safely
-            const rawApiUrl = import.meta.env.VITE_API_URL || '/api';
-            const apiBase = rawApiUrl.replace(/\/api\/?$/, '');
-            // Ensure we target /api/index.php explicitly since nginx maps /api to backend root
-            const targetUrl = apiBase ? `${apiBase}/api/index.php?action=process_payment` : '/api/index.php?action=process_payment';
+            // 1. Fetch Pending Cuotas directly
+            // Get Sales first
+            const { data: ventas, error: ventasError } = await supabase
+                .from('ventas')
+                .select('id')
+                .eq('cliente_id', selectedAccountClient.id)
+                .eq('metodo_pago', 'cuotas')
 
-            const response = await fetch(targetUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session.access_token}`
-                },
-                body: JSON.stringify({
-                    cliente_id: selectedAccountClient.id,
-                    monto: amountToPay,
-                    metodo_pago: 'efectivo', // TODO: Add selector in UI for method
-                    referencia: 'Abono desde Dashboard'
-                })
-            })
+            if (ventasError) throw ventasError
 
-            const responseText = await response.text()
-            console.log('Raw Server Response:', responseText)
+            const ventaIds = ventas.map(v => v.id)
 
-            let result
-            try {
-                result = JSON.parse(responseText)
-            } catch (e) {
-                console.error('JSON Parse Error:', e)
-                throw new Error(`Error del servidor (No JSON): ${responseText.substring(0, 50)}...`)
+            if (ventaIds.length === 0) {
+                alert('No se encontraron deudas para procesar.')
+                setIsProcessingPayment(false)
+                return
             }
 
-            if (!response.ok) {
-                throw new Error(result.error || 'Error desconocido en el servidor')
+            // Get Cuotas
+            const { data: cuotas, error: cuotasError } = await supabase
+                .from('cuotas')
+                .select('*')
+                .in('venta_id', ventaIds)
+                .neq('estado', 'pagado')
+                .order('fecha_vencimiento', { ascending: true })
+
+            if (cuotasError) throw cuotasError
+
+            // 2. Distribute Payment
+            let remanente = amountToPay
+            let totalAbonado = 0
+
+            for (const cuota of cuotas) {
+                if (remanente <= 1) break // Tolerance
+
+                const deudaCuota = Number(cuota.monto) - Number(cuota.monto_pagado || 0)
+                const pago = Math.min(remanente, deudaCuota)
+
+                if (pago > 0) {
+                    const nuevoPagado = Number(cuota.monto_pagado || 0) + pago
+                    const nuevoEstado = (nuevoPagado >= (Number(cuota.monto) - 1)) ? 'pagado' : 'pendiente'
+
+                    // Update Cuota
+                    const { error: updateError } = await supabase
+                        .from('cuotas')
+                        .update({ monto_pagado: nuevoPagado, estado: nuevoEstado })
+                        .eq('id', cuota.id)
+
+                    if (updateError) throw updateError
+
+                    // Insert History
+                    const { error: historyError } = await supabase
+                        .from('historial_pagos')
+                        .insert([{
+                            venta_id: cuota.venta_id,
+                            cuota_id: cuota.id,
+                            cliente_id: selectedAccountClient.id,
+                            usuario_id: session.user.id,
+                            monto: pago,
+                            metodo_pago: 'efectivo', // TODO: Add selector
+                            referencia: 'Abono desde Dashboard (Web)'
+                        }])
+
+                    if (historyError) throw historyError
+
+                    remanente -= pago
+                    totalAbonado += pago
+                }
             }
 
             setIsGlobalPaymentModalOpen(false)
             setGlobalPaymentAmount('')
-            alert(`Abono registrado correctamente. Monto aplicado: $${result.monto_abonado}`)
+            alert(`Abono registrado correctamente. Monto aplicado: $${totalAbonado}`)
 
             // Refresh Account Data
             fetchClientAccount(selectedAccountClient)
