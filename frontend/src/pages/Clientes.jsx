@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { Plus, Search, MoreVertical, Edit2, Trash2, Phone, Mail, UserPlus, Filter, Loader2, X, Save } from 'lucide-react'
+import { Plus, Search, MoreVertical, Edit2, Trash2, Phone, Mail, UserPlus, Filter, Loader2, X, Save, DollarSign, Clock, CheckCircle2, AlertCircle, TrendingDown } from 'lucide-react'
 
 const initialForm = {
     nombre: '',
@@ -17,7 +17,11 @@ const Clientes = () => {
     const [searchTerm, setSearchTerm] = useState('')
     const [loading, setLoading] = useState(true)
     const [isModalOpen, setIsModalOpen] = useState(false)
+    const [isAccountModalOpen, setIsAccountModalOpen] = useState(false)
     const [editingClient, setEditingClient] = useState(null)
+    const [selectedAccountClient, setSelectedAccountClient] = useState(null)
+    const [clientAccountData, setClientAccountData] = useState({ cuotas: [], totalDebt: 0, totalPaid: 0 })
+    const [loadingAccount, setLoadingAccount] = useState(false)
     const [formData, setFormData] = useState(initialForm)
     const [isSaving, setIsSaving] = useState(false)
 
@@ -34,6 +38,53 @@ const Clientes = () => {
 
         if (!error) setClientes(data)
         setLoading(false)
+    }
+
+    const fetchClientAccount = async (client) => {
+        setLoadingAccount(true)
+        setSelectedAccountClient(client)
+        setIsAccountModalOpen(true)
+
+        // Fetch sales and linked cuotas for this client
+        const { data: ventas, error } = await supabase
+            .from('ventas')
+            .select(`
+                id,
+                total,
+                created_at,
+                metodo_pago,
+                estado_pago,
+                cuotas (
+                    id,
+                    monto,
+                    fecha_vencimiento,
+                    estado
+                )
+            `)
+            .eq('cliente_id', client.id)
+            .eq('metodo_pago', 'cuotas')
+
+        if (!error && ventas) {
+            let allCuotas = []
+            ventas.forEach(venta => {
+                if (venta.cuotas) {
+                    allCuotas = [...allCuotas, ...venta.cuotas.map(c => ({ ...c, venta_id: venta.id, venta_date: venta.created_at }))]
+                }
+            })
+
+            // Sort by due date
+            allCuotas.sort((a, b) => new Date(a.fecha_vencimiento) - new Date(b.fecha_vencimiento))
+
+            const totalDebt = allCuotas.filter(c => c.estado !== 'pagado').reduce((acc, c) => acc + Number(c.monto), 0)
+            const totalPaid = allCuotas.filter(c => c.estado === 'pagado').reduce((acc, c) => acc + Number(c.monto), 0)
+
+            setClientAccountData({
+                cuotas: allCuotas,
+                totalDebt,
+                totalPaid
+            })
+        }
+        setLoadingAccount(false)
     }
 
     const handleOpenModal = (client = null) => {
@@ -83,6 +134,25 @@ const Clientes = () => {
         }
     }
 
+    const handlePayCuota = async (cuota) => {
+        if (!confirm(`¿Confirmar pago de la cuota por $${Number(cuota.monto).toLocaleString('es-CL')}?`)) return;
+
+        try {
+            const { error } = await supabase
+                .from('cuotas')
+                .update({ estado: 'pagado' })
+                .eq('id', cuota.id)
+
+            if (error) throw error
+
+            // Refresh data
+            fetchClientAccount(selectedAccountClient)
+        } catch (error) {
+            console.error('Error paying cuota:', error)
+            alert('Error al registrar pago')
+        }
+    }
+
     const filteredClientes = clientes.filter(c =>
         c.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.documento?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -90,7 +160,7 @@ const Clientes = () => {
     )
 
     return (
-        <div className="space-y-10 animate-fade-in text-slate-900">
+        <div className="space-y-10 animate-fade-in text-slate-900 pb-20">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div>
                     <h1 className="text-4xl font-black text-slate-900 tracking-tight">CRM Clientes</h1>
@@ -117,11 +187,6 @@ const Clientes = () => {
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-                    <div className="flex gap-3">
-                        <button className="p-4 bg-white border border-slate-200 rounded-2xl text-slate-400 hover:text-slate-900 transition-colors shadow-sm">
-                            <Filter size={20} />
-                        </button>
-                    </div>
                 </div>
 
                 <div className="overflow-x-auto">
@@ -131,7 +196,7 @@ const Clientes = () => {
                                 <th className="px-8 py-6">Información del Cliente</th>
                                 <th className="px-8 py-6">Identificación</th>
                                 <th className="px-8 py-6">Contacto Directo</th>
-                                <th className="px-8 py-6">Estado de Cuenta</th>
+                                <th className="px-8 py-6">Estado</th>
                                 <th className="px-8 py-6 text-right">Gestión</th>
                             </tr>
                         </thead>
@@ -192,6 +257,13 @@ const Clientes = () => {
                                         </td>
                                         <td className="px-8 py-6 text-right">
                                             <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button
+                                                    onClick={() => fetchClientAccount(cliente)}
+                                                    className="p-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-600/20"
+                                                    title="Ver Cuenta Corriente"
+                                                >
+                                                    <DollarSign size={16} />
+                                                </button>
                                                 <button onClick={() => handleOpenModal(cliente)} className="p-2.5 bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 rounded-xl transition-all shadow-sm">
                                                     <Edit2 size={16} />
                                                 </button>
@@ -206,15 +278,9 @@ const Clientes = () => {
                         </tbody>
                     </table>
                 </div>
-
-                <div className="p-6 bg-slate-50/50 text-center border-t border-slate-100">
-                    <button className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] hover:text-indigo-600 transition-colors">
-                        Ver todos los clientes registrados
-                    </button>
-                </div>
             </div>
 
-            {/* Modal de Cliente */}
+            {/* Modal de Cliente (Edición/Creación) */}
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
                     <div className="bg-white w-full max-w-2xl rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
@@ -308,6 +374,114 @@ const Clientes = () => {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal de Cuenta Corriente (Deudas) */}
+            {isAccountModalOpen && selectedAccountClient && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-white w-full max-w-4xl rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 max-h-[90vh] flex flex-col">
+                        <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 flex-shrink-0">
+                            <div>
+                                <h2 className="text-2xl font-black text-slate-900">Estado de Cuenta</h2>
+                                <p className="text-sm text-slate-500 font-bold tracking-tight uppercase">{selectedAccountClient.nombre}</p>
+                            </div>
+                            <button onClick={() => setIsAccountModalOpen(false)} className="p-3 bg-white border border-slate-100 rounded-2xl text-slate-400 hover:text-slate-900 transition-colors shadow-sm">
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <div className="p-8 overflow-y-auto scrollbar-elegant">
+                            {loadingAccount ? (
+                                <div className="flex items-center justify-center py-20">
+                                    <Loader2 className="animate-spin text-indigo-500" size={48} />
+                                </div>
+                            ) : (
+                                <div className="space-y-8">
+                                    {/* Resumen Global */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="p-6 bg-rose-50 rounded-3xl border border-rose-100 flex items-center gap-4">
+                                            <div className="p-3 bg-rose-200/50 text-rose-700 rounded-2xl">
+                                                <TrendingDown size={28} />
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-black text-rose-400 uppercase tracking-widest">Deuda Total Pendiente</p>
+                                                <p className="text-3xl font-black text-rose-700">${clientAccountData.totalDebt.toLocaleString('es-CL')}</p>
+                                            </div>
+                                        </div>
+                                        <div className="p-6 bg-emerald-50 rounded-3xl border border-emerald-100 flex items-center gap-4">
+                                            <div className="p-3 bg-emerald-200/50 text-emerald-700 rounded-2xl">
+                                                <CheckCircle2 size={28} />
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-black text-emerald-400 uppercase tracking-widest">Total Pagado Histórico</p>
+                                                <p className="text-3xl font-black text-emerald-700">${clientAccountData.totalPaid.toLocaleString('es-CL')}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Lista de Cuotas */}
+                                    <div className="space-y-4">
+                                        <h3 className="text-lg font-black text-slate-900 border-b border-slate-100 pb-2">Cuotas y Movimientos</h3>
+
+                                        {clientAccountData.cuotas.length === 0 ? (
+                                            <div className="py-12 text-center text-slate-400 italic bg-gray-50 rounded-2xl border border-gray-100">
+                                                No hay historial de crédito para este cliente.
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-3">
+                                                {clientAccountData.cuotas.map((cuota, idx) => (
+                                                    <div key={idx} className={`p-4 rounded-2xl border flex items-center justify-between transition-all ${cuota.estado === 'pagado'
+                                                            ? 'bg-emerald-50/30 border-emerald-100'
+                                                            : cuota.estado === 'vencido'
+                                                                ? 'bg-rose-50/50 border-rose-100'
+                                                                : 'bg-white border-slate-200'
+                                                        }`}>
+                                                        <div className="flex items-center gap-4">
+                                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold ${cuota.estado === 'pagado' ? 'bg-emerald-100 text-emerald-600' : 'bg-indigo-50 text-indigo-600'
+                                                                }`}>
+                                                                {idx + 1}
+                                                            </div>
+                                                            <div>
+                                                                <p className="font-bold text-slate-900">Vencimiento: {new Date(cuota.fecha_vencimiento).toLocaleDateString()}</p>
+                                                                <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Venta #{cuota.venta_id.slice(0, 8)} • {new Date(cuota.venta_date).toLocaleDateString()}</p>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="flex items-center gap-6">
+                                                            <div className="text-right">
+                                                                <p className="text-lg font-black text-slate-900">${Number(cuota.monto).toLocaleString('es-CL')}</p>
+                                                                <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${cuota.estado === 'pagado' ? 'bg-emerald-100 text-emerald-600' :
+                                                                        cuota.estado === 'vencido' ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-600'
+                                                                    }`}>
+                                                                    {cuota.estado}
+                                                                </span>
+                                                            </div>
+
+                                                            {cuota.estado !== 'pagado' && (
+                                                                <button
+                                                                    onClick={() => handlePayCuota(cuota)}
+                                                                    className="p-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-500 shadow-lg shadow-indigo-600/20 active:scale-95"
+                                                                    title="Abonar / Pagar Cuota"
+                                                                >
+                                                                    <DollarSign size={20} />
+                                                                </button>
+                                                            )}
+                                                            {cuota.estado === 'pagado' && (
+                                                                <div className="p-3 text-emerald-500">
+                                                                    <CheckCircle2 size={24} />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}
