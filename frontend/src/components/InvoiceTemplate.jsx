@@ -33,10 +33,14 @@ const InvoiceTemplate = forwardRef(({ venta, format = 'a4' }, ref) => {
 
     const containerStyle = isThermal
         ? { backgroundColor: colors.white, color: colors.slate900, fontFamily: 'monospace', fontSize: '14px', maxWidth: format === '58mm' ? '58mm' : '80mm', padding: format === '58mm' ? '8px' : '16px', margin: '0 auto' }
-        : { backgroundColor: colors.white, padding: '40px', maxWidth: '896px', margin: '0 auto', color: colors.slate900 }
+        : { backgroundColor: colors.white, color: colors.slate900 }
+
+    const containerClass = isThermal
+        ? '' // Thermal uses inline styles for strict width
+        : 'p-10 max-w-4xl mx-auto w-full print:max-w-none print:w-full print:p-8 print:m-0'
 
     return (
-        <div ref={ref} style={containerStyle} className={!isThermal ? "invoice-container-a4" : ""}>
+        <div ref={ref} style={containerStyle} className={containerClass}>
             {/* Header */}
             <div style={{
                 textAlign: 'center',
