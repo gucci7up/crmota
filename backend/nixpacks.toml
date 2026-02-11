@@ -1,0 +1,8 @@
+[phases.setup]
+nixPkgs = ["php82", "nginx"]
+
+[phases.build]
+cmds = ["mkdir -p /app/backend/public", "cp -r . /app/backend/public"]
+
+[phases.start]
+cmd = "php -S 0.0.0.0:80 index.php"
