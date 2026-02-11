@@ -57,19 +57,25 @@ const Dashboard = () => {
         const fetchDashboardData = async () => {
             try {
                 // Fetch stats in parallel
-                const [salesRes, clientsRes, productsRes, lowStockRes, profitRes, invRes] = await Promise.all([
+                const [salesRes, clientsRes, productsRes, lowStockRes, profitRes, invRes, cuotasRes] = await Promise.all([
                     supabase.from('ventas').select('total, metodo_pago'),
                     supabase.from('clientes').select('id', { count: 'exact' }),
                     supabase.from('productos').select('id', { count: 'exact' }),
                     supabase.from('productos').select('id', { count: 'exact' }).lt('stock', 10),
                     supabase.from('detalle_ventas').select('subtotal, cantidad, costo_unitario'),
-                    supabase.from('productos').select('stock, precio_compra')
+                    supabase.from('productos').select('stock, precio_compra'),
+                    supabase.from('cuotas').select('monto_pagado')
                 ])
 
                 // Calculate Cash Flow (Real Money) vs Credit (Pending)
                 const cashSales = salesRes.data
                     ?.filter(s => s.metodo_pago !== 'cuotas' && s.metodo_pago !== 'credito')
                     .reduce((sum, sale) => sum + Number(sale.total || 0), 0) || 0
+
+                // Add payments made on credit sales (Partial or Full)
+                const collectedCredit = cuotasRes.data?.reduce((sum, cuota) => sum + Number(cuota.monto_pagado || 0), 0) || 0
+
+                const totalCashOnHand = cashSales + collectedCredit
 
                 const creditSales = salesRes.data
                     ?.filter(s => s.metodo_pago === 'cuotas' || s.metodo_pago === 'credito')
@@ -86,8 +92,8 @@ const Dashboard = () => {
                     sum + (Number(prod.stock || 0) * Number(prod.precio_compra || 0)), 0) || 0
 
                 setStats({
-                    totalSales: cashSales, // Now represents 'Dinero en Caja'
-                    totalCredit: creditSales, // New stat
+                    totalSales: totalCashOnHand, // Real money in hand (Cash Sales + Collected Credit)
+                    totalCredit: creditSales, // Total volume sold on credit
                     totalProfit,
                     inventoryValue,
                     totalClients: clientsRes.count || 0,
