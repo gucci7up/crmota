@@ -6,10 +6,58 @@
 // echo json_encode(["status" => "PHP is running", "env" => getenv('SUPABASE_URL') ? "loaded" : "missing", "ver" => "1.0"]);
 // exit;
 
-// Enable error reporting for debugging
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
+// Enable error reporting but incorrectly configured to display HTML in production
+// We need to force JSON output for all errors
+ini_set('display_errors', 0); // Hide HTML errors
+ini_set('log_errors', 1);     // Log to file/stderr
 error_reporting(E_ALL);
+
+// Custom Error Handler to return JSON
+set_error_handler(function ($errno, $errstr, $errfile, $errline) {
+    if (!(error_reporting() & $errno)) {
+        return false;
+    }
+    http_response_code(500);
+    echo json_encode([
+        "error" => "PHP Error",
+        "message" => $errstr,
+        "file" => basename($errfile),
+        "line" => $errline
+    ]);
+    exit;
+});
+
+// Custom Exception Handler for uncaught exceptions
+set_exception_handler(function ($e) {
+    http_response_code(500);
+    echo json_encode([
+        "error" => "Uncaught Exception",
+        "message" => $e->getMessage(),
+        "file" => basename($e->getFile()),
+        "line" => $e->getLine()
+    ]);
+    exit;
+});
+
+// Register shutdown function to catch Fatal Errors (like parse errors, OOM)
+register_shutdown_function(function () {
+    $error = error_get_last();
+    if ($error && ($error['type'] === E_ERROR || $error['type'] === E_PARSE || $error['type'] === E_CORE_ERROR || $error['type'] === E_COMPILE_ERROR)) {
+        // Clear any previous output (like HTML partials)
+        if (ob_get_length())
+            ob_clean();
+
+        http_response_code(500);
+        header("Content-Type: application/json");
+        echo json_encode([
+            "error" => "Fatal Error",
+            "message" => $error['message'],
+            "file" => basename($error['file']),
+            "line" => $error['line']
+        ]);
+        exit;
+    }
+});
 
 // Pre-flight check for dependencies
 if (!file_exists(__DIR__ . '/vendor/autoload.php')) {
