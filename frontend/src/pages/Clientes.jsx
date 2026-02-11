@@ -191,7 +191,16 @@ const Clientes = () => {
                 })
             })
 
-            const result = await response.json()
+            const responseText = await response.text()
+            console.log('Raw Server Response:', responseText)
+
+            let result
+            try {
+                result = JSON.parse(responseText)
+            } catch (e) {
+                console.error('JSON Parse Error:', e)
+                throw new Error(`Error del servidor (No JSON): ${responseText.substring(0, 50)}...`)
+            }
 
             if (!response.ok) {
                 throw new Error(result.error || 'Error desconocido en el servidor')

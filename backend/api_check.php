@@ -1,3 +1,4 @@
 <?php
 header("Content-Type: application/json");
-echo json_encode(["message" => "Hello directly from api_check.php"]);
+header("Access-Control-Allow-Origin: *");
+echo json_encode(["status" => "ok", "message" => "Backend is reachable"]);
