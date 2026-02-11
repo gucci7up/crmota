@@ -71,17 +71,45 @@ try {
         // TEST 2: POST (Insert)
         echo "9. Testing Supabase POST (write dry-run)...\n";
 
-        // TRY TO USE SERVICE ROLE KEY if available to BYPASS RLS
-        $service_key = getenv('SUPABASE_SERVICE_ROLE_KEY');
-        if ($service_key) {
-            echo "   Using SERVICE_ROLE_KEY to bypass RLS...\n";
-            Database::setToken($service_key);
-        } else {
-            echo "   WARNING: SUPABASE_SERVICE_ROLE_KEY not found. Using Anon Key (RLS might block this).\n";
+        // TEST 2: POST (Insert)
+        echo "9. Testing Supabase POST (write dry-run)...\n";
+
+        $jwt_secret = getenv('SUPABASE_JWT_SECRET');
+        $valid_token = null;
+
+        if ($jwt_secret) {
+            echo "   Generating fresh Service Role JWT using Secret...\n";
+            try {
+                // Manually create a JWT to bypass "sb_secret" format issues
+                $payload = [
+                    "role" => "service_role",
+                    "iss" => "supabase",
+                    "iat" => time(),
+                    "exp" => time() + 60 // 1 minute
+                ];
+                // Use simple base64url encoding signature if library fails, 
+                // OR use the library available in autoload
+                if (class_exists('Firebase\JWT\JWT')) {
+                    $valid_token = \Firebase\JWT\JWT::encode($payload, $jwt_secret, 'HS256');
+                    echo "   JWT generated successfully.\n";
+                } else {
+                    echo "   WARNING: JWT library not found. Cannot generate token.\n";
+                }
+            } catch (Throwable $e) {
+                echo "   WARNING: Failed to generate JWT: " . $e->getMessage() . "\n";
+            }
         }
 
-        // Attempt to insert a dummy category with a timestamp to avoid duplicates/constraints issues if possible
-        // We rely on the fact that if it crashes (502), the script stops.
+        if ($valid_token) {
+            Database::setToken($valid_token);
+        } else {
+            // Fallback to existing key if generation failed
+            $service_key = getenv('SUPABASE_SERVICE_ROLE_KEY');
+            if ($service_key)
+                Database::setToken($service_key);
+        }
+
+        // Attempt to insert a dummy category 
         $dummy_name = "Debug " . time();
         $test_insert = Database::insert('categorias', ['nombre' => $dummy_name]);
 
