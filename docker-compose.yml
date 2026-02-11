@@ -4,7 +4,7 @@ services:
   backend:
     build: ./backend
     ports:
-      - "8080:80"
+      - "8081:80"
     environment:
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
@@ -17,6 +17,6 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "3000:80"
+      - "3001:80"
     depends_on:
       - backend
