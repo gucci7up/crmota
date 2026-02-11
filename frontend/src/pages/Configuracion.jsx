@@ -20,6 +20,7 @@ const Configuracion = () => {
 
     // Configuración Local
     const [printerFormat, setPrinterFormat] = useState(localStorage.getItem('printerFormat') || 'a4')
+    const [printMode, setPrintMode] = useState(localStorage.getItem('printMode') || 'browser')
 
     useEffect(() => {
         if (user) {
@@ -258,6 +259,48 @@ const Configuracion = () => {
                                 <p className="text-xs text-slate-500 font-medium pl-8">{format.desc}</p>
                             </label>
                         ))}
+                    </div>
+
+                    {/* Print Mode (Browser vs Bluetooth) */}
+                    <div className="mt-8 pt-8 border-t border-slate-100">
+                        <h3 className="text-lg font-bold text-slate-900 mb-4">Modo de Impresión</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <label className={`relation cursor-pointer p-6 rounded-2xl border-2 transition-all hover:scale-[1.02] ${printMode === 'browser' ? 'border-indigo-500 bg-indigo-50/50' : 'border-slate-100 bg-slate-50 hover:border-indigo-200'}`}>
+                                <div className="flex items-center gap-3 mb-2">
+                                    <input
+                                        type="radio"
+                                        name="printMode"
+                                        value="browser"
+                                        checked={printMode === 'browser'}
+                                        onChange={(e) => {
+                                            setPrintMode(e.target.value)
+                                            localStorage.setItem('printMode', e.target.value)
+                                        }}
+                                        className="w-5 h-5 text-indigo-600 border-slate-300 focus:ring-indigo-500"
+                                    />
+                                    <span className="font-black text-slate-900">Navegador (PDF)</span>
+                                </div>
+                                <p className="text-xs text-slate-500 font-medium pl-8">Usa el diálogo de impresión del sistema. Mejor para A4/Carta.</p>
+                            </label>
+
+                            <label className={`relation cursor-pointer p-6 rounded-2xl border-2 transition-all hover:scale-[1.02] ${printMode === 'bluetooth' ? 'border-indigo-500 bg-indigo-50/50' : 'border-slate-100 bg-slate-50 hover:border-indigo-200'}`}>
+                                <div className="flex items-center gap-3 mb-2">
+                                    <input
+                                        type="radio"
+                                        name="printMode"
+                                        value="bluetooth"
+                                        checked={printMode === 'bluetooth'}
+                                        onChange={(e) => {
+                                            setPrintMode(e.target.value)
+                                            localStorage.setItem('printMode', e.target.value)
+                                        }}
+                                        className="w-5 h-5 text-indigo-600 border-slate-300 focus:ring-indigo-500"
+                                    />
+                                    <span className="font-black text-slate-900">Bluetooth (Nativo)</span>
+                                </div>
+                                <p className="text-xs text-slate-500 font-medium pl-8">Conexión directa a impresora térmica. Solo Chrome/Android.</p>
+                            </label>
+                        </div>
                     </div>
                 </div>
 

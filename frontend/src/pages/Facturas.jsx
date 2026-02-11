@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
-import { FileText, Search, Download, Filter, Eye, Tag, Loader2, Printer, X, CreditCard, Banknote } from 'lucide-react'
+import { FileText, Search, Download, Filter, Eye, Tag, Loader2, Printer, X, CreditCard, Banknote, Bluetooth } from 'lucide-react'
 import InvoiceTemplate from '../components/InvoiceTemplate'
+import { useReactToPrint } from 'react-to-print'
+import { printInvoiceBluetooth } from '../utils/EscPos'
 
 const Facturas = () => {
     const [ventas, setVentas] = useState([])
@@ -57,8 +59,27 @@ const Facturas = () => {
         setLoading(false)
     }
 
-    const handlePrint = () => {
-        window.print()
+    const handlePrintBrowser = useReactToPrint({
+        content: () => invoiceRef.current,
+        documentTitle: `Factura-${selectedInvoice?.id || 'Venta'}`,
+    })
+
+    const handlePrint = async () => {
+        const mode = localStorage.getItem('printMode') || 'browser';
+
+        if (mode === 'bluetooth') {
+            try {
+                await printInvoiceBluetooth(selectedInvoice, printerFormat);
+            } catch (error) {
+                console.error("Bluetooth print error:", error);
+                alert("Error de impresión Bluetooth: " + (error.message || error));
+                if (confirm("¿Desea imprimir usando el navegador (PDF)?")) {
+                    handlePrintBrowser();
+                }
+            }
+        } else {
+            handlePrintBrowser();
+        }
     }
 
     const openInvoiceModal = (venta) => {
@@ -208,7 +229,7 @@ const Facturas = () => {
                             </div>
                             <div className="flex gap-4">
                                 <button onClick={handlePrint} className="flex items-center gap-2 px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-indigo-600/20">
-                                    <Printer size={18} />
+                                    {localStorage.getItem('printMode') === 'bluetooth' ? <Bluetooth size={18} /> : <Printer size={18} />}
                                     Imprimir
                                 </button>
                                 <button onClick={() => setIsInvoiceModalOpen(false)} className="p-2 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-slate-900 transition-colors">
