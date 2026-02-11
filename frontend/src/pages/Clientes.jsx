@@ -478,12 +478,11 @@ const Clientes = () => {
                                             <div className="space-y-3">
                                                 {clientAccountData.cuotas.map((cuota, idx) => (
                                                     <div key={idx} className={`p-5 rounded-2xl border flex items-center justify-between transition-all ${cuota.estado === 'pagado'
-                                                        < div key={idx} className={`p-5 rounded-2xl border flex items-center justify-between transition-all ${cuota.estado === 'pagado'
-                                                            ? 'bg-emerald-50/30 border-emerald-100'
-                                                            : cuota.estado === 'vencido'
-                                                                ? 'bg-rose-50/50 border-rose-100'
-                                                                : 'bg-white border-slate-200'
-                                                            }`}>
+                                                        ? 'bg-emerald-50/30 border-emerald-100'
+                                                        : cuota.estado === 'vencido'
+                                                            ? 'bg-rose-50/50 border-rose-100'
+                                                            : 'bg-white border-slate-200'
+                                                        }`}>
                                                         <div className="flex items-center gap-5">
                                                             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-lg ${cuota.estado === 'pagado' ? 'bg-emerald-100 text-emerald-600'
                                                                 : cuota.estado === 'vencido' ? 'bg-rose-100 text-rose-600'
