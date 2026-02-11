@@ -84,6 +84,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 $request_method = $_SERVER['REQUEST_METHOD'];
 $request_uri = $_SERVER['REQUEST_URI'];
 
+// BYPASS: Direct File Serving for process_payment.php
+// This handles cases where rewrite rules force everything to index.php
+$direct_files = ['process_payment.php', 'verify_payment_endpoint.php', 'debug_env.php'];
+if (isset($path_parts[1]) && in_array($path_parts[1], $direct_files)) {
+    $file_path = __DIR__ . '/api/' . $path_parts[1];
+    if (file_exists($file_path)) {
+        require_once $file_path;
+        exit;
+    }
+}
+
 // BYPASS: Direct Action Handling via Query Params
 // This works even if Nginx rewrites are broken or PATH_INFO is missing
 $action_param = $_GET['action'] ?? '';
