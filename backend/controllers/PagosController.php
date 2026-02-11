@@ -146,3 +146,7 @@ class PagosController
         }
     }
 }
+
+// Instantiate and handle
+$controller = new PagosController();
+$controller->handle($_SERVER['REQUEST_METHOD'], $action);

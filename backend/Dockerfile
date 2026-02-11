@@ -12,7 +12,11 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install gd pdo pdo_mysql curl mbstring xml
 
+
 RUN a2enmod rewrite
+
+# Allow .htaccess to override config
+RUN sed -i 's/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
 
 COPY . /var/www/html/
 WORKDIR /var/www/html/
