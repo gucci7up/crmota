@@ -98,7 +98,7 @@ const PrintPreviewModal = ({ isOpen, onClose, invoice, format = 'a4' }) => {
                 {/* Content Area - Scrollable on Screen, Full on Print */}
                 <div className="flex-1 overflow-y-auto bg-slate-100/50 p-8 print:p-0 print:bg-white print:overflow-visible flex justify-center">
                     <div className="bg-white shadow-xl print:shadow-none print:w-full">
-                        <div ref={contentRef}>
+                        <div ref={contentRef} className="print-content">
                             <InvoiceTemplate venta={invoice} format={format} />
                         </div>
                     </div>
