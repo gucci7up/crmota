@@ -3,8 +3,6 @@ import { supabase } from '../lib/supabase'
 import { FileText, Search, Download, Filter, Eye, Tag, Loader2, Printer, X, CreditCard, Banknote, Bluetooth } from 'lucide-react'
 import InvoiceTemplate from '../components/InvoiceTemplate'
 import PrintPreviewModal from '../components/PrintPreviewModal'
-import { useReactToPrint } from 'react-to-print'
-import { printInvoiceBluetooth } from '../utils/EscPos'
 
 const Facturas = () => {
     const [ventas, setVentas] = useState([])
@@ -219,33 +217,13 @@ const Facturas = () => {
                 </div>
             </div>
 
-            {/* Print Friendly Modal */}
-            {isInvoiceModalOpen && selectedInvoice && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm print:p-0 print:bg-white print:static print:inset-auto print:block">
-                    <div className="bg-white w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-[2.5rem] shadow-2xl print:shadow-none print:w-full print:max-w-none print:max-h-none print:rounded-none print:overflow-visible">
-                        {/* Modal Header - Hidden on Print */}
-                        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 print:hidden sticky top-0 z-10">
-                            <div>
-                                <h2 className="text-xl font-black text-slate-900">Detalle de Factura / Boleta</h2>
-                            </div>
-                            <div className="flex gap-4">
-                                <button onClick={handlePrint} className="flex items-center gap-2 px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-indigo-600/20">
-                                    {localStorage.getItem('printMode') === 'bluetooth' ? <Bluetooth size={18} /> : <Printer size={18} />}
-                                    Imprimir
-                                </button>
-                                <button onClick={() => setIsInvoiceModalOpen(false)} className="p-2 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-slate-900 transition-colors">
-                                    <X size={20} />
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Printable Content */}
-                        <div ref={invoiceRef}>
-                            <InvoiceTemplate venta={selectedInvoice} format={printerFormat} />
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* Print Preview Modal */}
+            <PrintPreviewModal
+                isOpen={isInvoiceModalOpen}
+                onClose={() => setIsInvoiceModalOpen(false)}
+                invoice={selectedInvoice}
+                format={printerFormat}
+            />
         </div>
     )
 }
