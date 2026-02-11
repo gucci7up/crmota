@@ -95,6 +95,17 @@ if ($path_parts[0] !== 'api') {
     exit;
 }
 
+// BYPASS: Direct File Serving for process_payment.php
+// This handles cases where rewrite rules force everything to index.php
+$direct_files = ['process_payment.php', 'verify_payment_endpoint.php'];
+if (isset($path_parts[1]) && in_array($path_parts[1], $direct_files)) {
+    $file_path = __DIR__ . '/api/' . $path_parts[1];
+    if (file_exists($file_path)) {
+        require $file_path;
+        exit;
+    }
+}
+
 $module = $path_parts[1] ?? '';
 $action = $path_parts[2] ?? '';
 
