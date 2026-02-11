@@ -109,25 +109,30 @@ body {
     position: fixed;
     left: 0;
     top: 0;
-    width: 100vw;
-    height: 100vh;
+    width: 100%;
+    height: 100%;
     margin: 0;
     padding: 0;
     background: white;
     z-index: 9999;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
+    display: block;
   }
 
   /* Override inline styles for the invoice container during print */
   .invoice-container-a4 {
     position: relative;
-    max-width: 210mm !important;
-    width: 210mm !important;
-    padding: 20mm !important;
-    margin: 0 auto !important;
+    max-width: none !important;
+    width: 100% !important;
+    padding: 15mm !important;
+    /* Slightly reduced to ensure fit */
+    margin: 0 !important;
     background: white !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Ensure text doesn't overflow */
+  .invoice-container-a4 * {
+    max-width: 100%;
   }
 
   /* Hide scrollbars in print */
