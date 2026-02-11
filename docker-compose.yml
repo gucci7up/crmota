@@ -9,8 +9,6 @@ services:
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-    volumes:
-      - ./backend:/var/www/html
 
   frontend:
     build:
