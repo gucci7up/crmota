@@ -488,16 +488,25 @@ const Clientes = () => {
                                                                 : cuota.estado === 'vencido' ? 'bg-rose-100 text-rose-600'
                                                                     : 'bg-slate-100 text-slate-500'
                                                                 }`}>
-                                                                {idx + 1}
+                                                                {cuota.estado === 'pagado' ? <CheckCircle2 size={20} /> : <DollarSign size={20} />}
                                                             </div>
                                                             <div>
-                                                                <p className="font-bold text-slate-900 text-lg">Vencimiento: {new Date(cuota.fecha_vencimiento).toLocaleDateString()}</p>
-                                                                <p className="text-xs text-slate-400 uppercase tracking-wider font-bold">Total: ${Number(cuota.monto).toLocaleString('es-CL')}</p>
+                                                                <p className="font-bold text-slate-900 text-lg">
+                                                                    {cuota.estado === 'pagado' ? 'Pago Registrado' : `Vencimiento: ${new Date(cuota.fecha_vencimiento).toLocaleDateString()}`}
+                                                                </p>
+                                                                <p className="text-xs text-slate-400 uppercase tracking-wider font-bold">
+                                                                    {cuota.estado === 'pagado' ? 'Fecha Vencimiento Original: ' + new Date(cuota.fecha_vencimiento).toLocaleDateString() : 'Total Original: $' + Number(cuota.monto).toLocaleString('es-CL')}
+                                                                </p>
                                                             </div>
                                                         </div>
 
                                                         <div className="text-right">
-                                                            <p className="text-2xl font-black text-slate-900">${(Number(cuota.monto) - Number(cuota.monto_pagado || 0)).toLocaleString('es-CL')}</p>
+                                                            <p className="text-2xl font-black text-slate-900">
+                                                                ${cuota.estado === 'pagado'
+                                                                    ? Number(cuota.monto).toLocaleString('es-CL')
+                                                                    : (Number(cuota.monto) - Number(cuota.monto_pagado || 0)).toLocaleString('es-CL')
+                                                                }
+                                                            </p>
                                                             <div className="flex flex-col items-end gap-1">
                                                                 <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${cuota.estado === 'pagado' ? 'bg-emerald-100 text-emerald-600' :
                                                                     cuota.estado === 'vencido' ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-600'
