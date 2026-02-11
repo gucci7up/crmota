@@ -145,26 +145,20 @@ const Productos = () => {
         if (!newCategoryName.trim()) return
 
         setIsCreatingCategory(true)
+        setIsCreatingCategory(true)
         try {
-            const response = await fetch('/api/categorias', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session?.access_token}`
-                },
-                body: JSON.stringify({ nombre: newCategoryName })
-            })
+            // DIRECT SUPABASE INTEGRATION (Bypassing PHP Backend)
+            const { data, error } = await supabase
+                .from('categorias')
+                .insert([{ nombre: newCategoryName }])
+                .select()
+                .single()
 
-            if (!response.ok) {
-                const text = await response.text()
-                throw new Error(text || 'Error al crear categoría')
-            }
-
-            const result = await response.json()
+            if (error) throw error
 
             // Recargar categorías
-            const { data, error } = await supabase.from('categorias').select('*').order('nombre', { ascending: true })
-            if (!error) setCategorias(data)
+            const { data: catData, error: catError } = await supabase.from('categorias').select('*').order('nombre', { ascending: true })
+            if (!catError) setCategorias(catData)
 
             setNewCategoryName('')
             setIsCategoryModalOpen(false)
