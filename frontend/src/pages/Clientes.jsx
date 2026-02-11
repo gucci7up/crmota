@@ -20,7 +20,7 @@ const Clientes = () => {
     const [isAccountModalOpen, setIsAccountModalOpen] = useState(false)
     const [editingClient, setEditingClient] = useState(null)
     const [selectedAccountClient, setSelectedAccountClient] = useState(null)
-    const [clientAccountData, setClientAccountData] = useState({ cuotas: [], totalDebt: 0, totalPaid: 0 })
+    const [clientAccountData, setClientAccountData] = useState({ cuotas: [], pagos: [], totalDebt: 0, totalPaid: 0 })
     const [loadingAccount, setLoadingAccount] = useState(false)
     const [formData, setFormData] = useState(initialForm)
     const [isSaving, setIsSaving] = useState(false)
@@ -71,6 +71,13 @@ const Clientes = () => {
             .eq('cliente_id', client.id)
             .eq('metodo_pago', 'cuotas')
 
+        // Fetch Payment History
+        const { data: pagos, error: errorPagos } = await supabase
+            .from('historial_pagos')
+            .select('*')
+            .eq('cliente_id', client.id)
+            .order('created_at', { ascending: false })
+
         if (!error && ventas) {
             let allCuotas = []
             ventas.forEach(venta => {
@@ -92,6 +99,7 @@ const Clientes = () => {
 
             setClientAccountData({
                 cuotas: allCuotas,
+                pagos: pagos || [],
                 totalDebt,
                 totalPaid
             })
@@ -466,57 +474,39 @@ const Clientes = () => {
                                         </button>
                                     </div>
 
-                                    {/* Lista de Cuotas (Visual Only) */}
+                                    {/* Lista de Pagos / Abonos */}
                                     <div className="space-y-4">
-                                        <h3 className="text-lg font-black text-slate-900 border-b border-slate-100 pb-2">Detalle de Cuotas</h3>
+                                        <h3 className="text-lg font-black text-slate-900 border-b border-slate-100 pb-2">Historial de Abonos</h3>
 
-                                        {clientAccountData.cuotas.length === 0 ? (
+                                        {clientAccountData.pagos.length === 0 ? (
                                             <div className="py-12 text-center text-slate-400 italic bg-gray-50 rounded-2xl border border-gray-100">
-                                                Cliente al día. No hay deuda pendiente.
+                                                No hay abonos registrados.
                                             </div>
                                         ) : (
                                             <div className="space-y-3">
-                                                {clientAccountData.cuotas.map((cuota, idx) => (
-                                                    <div key={idx} className={`p-5 rounded-2xl border flex items-center justify-between transition-all ${cuota.estado === 'pagado'
-                                                        ? 'bg-emerald-50/30 border-emerald-100'
-                                                        : cuota.estado === 'vencido'
-                                                            ? 'bg-rose-50/50 border-rose-100'
-                                                            : 'bg-white border-slate-200'
-                                                        }`}>
+                                                {clientAccountData.pagos.map((pago, idx) => (
+                                                    <div key={idx} className="p-5 rounded-2xl border bg-emerald-50/30 border-emerald-100 flex items-center justify-between transition-all">
                                                         <div className="flex items-center gap-5">
-                                                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-lg ${cuota.estado === 'pagado' ? 'bg-emerald-100 text-emerald-600'
-                                                                : cuota.estado === 'vencido' ? 'bg-rose-100 text-rose-600'
-                                                                    : 'bg-slate-100 text-slate-500'
-                                                                }`}>
-                                                                {cuota.estado === 'pagado' ? <CheckCircle2 size={20} /> : <DollarSign size={20} />}
+                                                            <div className="w-12 h-12 rounded-2xl flex items-center justify-center font-black text-lg bg-emerald-100 text-emerald-600">
+                                                                <CheckCircle2 size={20} />
                                                             </div>
                                                             <div>
                                                                 <p className="font-bold text-slate-900 text-lg">
-                                                                    {cuota.estado === 'pagado' ? 'Pago Registrado' : `Vencimiento: ${new Date(cuota.fecha_vencimiento).toLocaleDateString()}`}
+                                                                    Abono Recibido
                                                                 </p>
                                                                 <p className="text-xs text-slate-400 uppercase tracking-wider font-bold">
-                                                                    {cuota.estado === 'pagado' ? 'Fecha Vencimiento Original: ' + new Date(cuota.fecha_vencimiento).toLocaleDateString() : 'Total Original: $' + Number(cuota.monto).toLocaleString('es-CL')}
+                                                                    {new Date(pago.created_at).toLocaleDateString()} &bull; {pago.referencia || 'Sin referencia'}
                                                                 </p>
                                                             </div>
                                                         </div>
 
                                                         <div className="text-right">
-                                                            <p className="text-2xl font-black text-slate-900">
-                                                                ${cuota.estado === 'pagado'
-                                                                    ? Number(cuota.monto).toLocaleString('es-CL')
-                                                                    : (Number(cuota.monto) - Number(cuota.monto_pagado || 0)).toLocaleString('es-CL')
-                                                                }
+                                                            <p className="text-2xl font-black text-emerald-600">
+                                                                ${Number(pago.monto).toLocaleString('es-CL')}
                                                             </p>
-                                                            <div className="flex flex-col items-end gap-1">
-                                                                <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${cuota.estado === 'pagado' ? 'bg-emerald-100 text-emerald-600' :
-                                                                    cuota.estado === 'vencido' ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-600'
-                                                                    }`}>
-                                                                    {cuota.estado === 'pagado' ? 'PAGADO' : 'PENDIENTE'}
-                                                                </span>
-                                                                {cuota.monto_pagado > 0 && cuota.estado !== 'pagado' && (
-                                                                    <span className="text-[10px] font-bold text-emerald-600">Abonado: ${Number(cuota.monto_pagado).toLocaleString('es-CL')}</span>
-                                                                )}
-                                                            </div>
+                                                            <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-600">
+                                                                CONFIRMADO
+                                                            </span>
                                                         </div>
                                                     </div>
                                                 ))}
