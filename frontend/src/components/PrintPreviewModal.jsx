@@ -43,10 +43,12 @@ const PrintPreviewModal = ({ isOpen, onClose, invoice, format = 'a4' }) => {
         }
 
         try {
+            console.log("Generating PDF from element:", element)
+            console.log("html2pdf library:", html2pdf)
             await html2pdf().set(opt).from(element).save()
         } catch (error) {
             console.error("PDF Generation Error:", error)
-            alert("Error generando PDF")
+            alert("Error generando PDF: " + (error.message || error))
         } finally {
             setIsGenerating(false)
         }
