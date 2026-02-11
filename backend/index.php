@@ -69,6 +69,7 @@ try {
         'upload' => 'controllers/UploadController.php',
         'categorias' => 'controllers/CategoriaController.php',
         'pagos' => 'controllers/PagosController.php'
+
     ];
 
     if (isset($routes[$module])) {
