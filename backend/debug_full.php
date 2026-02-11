@@ -70,6 +70,16 @@ try {
 
         // TEST 2: POST (Insert)
         echo "9. Testing Supabase POST (write dry-run)...\n";
+
+        // TRY TO USE SERVICE ROLE KEY if available to BYPASS RLS
+        $service_key = getenv('SUPABASE_SERVICE_ROLE_KEY');
+        if ($service_key) {
+            echo "   Using SERVICE_ROLE_KEY to bypass RLS...\n";
+            Database::setToken($service_key);
+        } else {
+            echo "   WARNING: SUPABASE_SERVICE_ROLE_KEY not found. Using Anon Key (RLS might block this).\n";
+        }
+
         // Attempt to insert a dummy category with a timestamp to avoid duplicates/constraints issues if possible
         // We rely on the fact that if it crashes (502), the script stops.
         $dummy_name = "Debug " . time();
@@ -81,7 +91,7 @@ try {
         if ($test_insert['status'] >= 200 && $test_insert['status'] < 300) {
             echo "   SUCCESS: POST works!\n";
         } else {
-            echo "   ERROR: POST failed. (This might be RLS or Schema, but if we see this, PHP didn't crash!)\n";
+            echo "   ERROR: POST failed. (Code: " . $test_insert['status'] . ")\n";
         }
     } else {
         echo "7. ERROR: Database class missing\n";
