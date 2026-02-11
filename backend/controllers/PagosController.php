@@ -52,17 +52,17 @@ class PagosController
             // URL params: select=*,ventas!inner(cliente_id)&ventas.cliente_id=eq.UUID&order=fecha_vencimiento.asc
             // Dado que Database::query es un wrapper simple, construyamos la query param manualmente o ajustemos el wrapper.
             // Ajuste temporal: Traer todas las ventas del cliente y luego sus cuotas, o usar una query más precisa.
-            
+
             // Opción B: Query directa a `cuotas` filtrando por las ventas del cliente.
             // Para asegurar precisión y evitar complejidad en el wrapper simple, haremos:
             // 1. Obtener ventas con deuda. 
             // 2. Obtener cuotas de esas ventas.
-            
+
             // Mejor opción con el wrapper actual:
             // "ventas?select=id,cuotas(*)&cliente_id=eq.$cliente_id"
-            
+
             $url = SUPABASE_URL . "/rest/v1/ventas?select=id,cuotas(*)&cliente_id=eq.$cliente_id&metodo_pago=eq.cuotas";
-            
+
             $ch = curl_init($url);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_HTTPHEADER, [
@@ -71,22 +71,23 @@ class PagosController
             ]);
             $resp = curl_exec($ch);
             curl_close($ch);
-            
+
             $ventas = json_decode($resp, true);
-            
+
             $allCuotas = [];
             foreach ($ventas as $venta) {
                 if (!empty($venta['cuotas'])) {
                     foreach ($venta['cuotas'] as $c) {
                         if ($c['estado'] !== 'pagado') {
+                            $c['venta_id'] = $venta['id']; // Inject parent venta_id
                             $allCuotas[] = $c;
                         }
                     }
                 }
             }
-            
+
             // Ordenar por vencimiento (antiguas primero)
-            usort($allCuotas, function($a, $b) {
+            usort($allCuotas, function ($a, $b) {
                 return strtotime($a['fecha_vencimiento']) - strtotime($b['fecha_vencimiento']);
             });
 
@@ -94,13 +95,14 @@ class PagosController
             $pagosRealizados = [];
 
             foreach ($allCuotas as $cuota) {
-                if ($remanente <= 0.01) break;
+                if ($remanente <= 0.01)
+                    break;
 
                 $deuda_actual = floatval($cuota['monto']) - floatval($cuota['monto_pagado'] ?? 0);
-                
+
                 // Cuanto pagamos de esta cuota
                 $pago_aplicable = min($remanente, $deuda_actual);
-                
+
                 // Nuevo estado
                 $nuevo_pagado = floatval($cuota['monto_pagado'] ?? 0) + $pago_aplicable;
                 $es_total = $nuevo_pagado >= (floatval($cuota['monto']) - 0.01);
