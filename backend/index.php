@@ -52,7 +52,9 @@ $action = $path_parts[2] ?? '';
 
 // Validar JWT para todos los módulos excepto webhooks públicos
 if ($module !== 'whatsapp' || $_SERVER['REQUEST_METHOD'] !== 'GET') {
-    // $userData = AuthMiddleware::validateJWT();
+    $userData = AuthMiddleware::validateJWT();
+    // Set user info for controllers if needed (e.g. for RLS/auditing)
+    // $GLOBALS['user'] = $userData;
 }
 
 try {
