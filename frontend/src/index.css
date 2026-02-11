@@ -115,15 +115,19 @@ body {
     padding: 0;
     background: white;
     z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
   }
 
   /* Override inline styles for the invoice container during print */
   .invoice-container-a4 {
-    max-width: 100% !important;
+    position: relative;
+    max-width: 210mm !important;
     width: 100% !important;
-    padding: 2.5cm !important;
-    /* Standard A4 margins */
-    margin: 0 !important;
+    padding: 20mm !important;
+    margin: 0 auto !important;
+    background: white !important;
   }
 
   /* Hide scrollbars in print */
