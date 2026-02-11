@@ -1,5 +1,5 @@
 [phases.setup]
-nixPkgs = ["php82", "nginx"]
+nixPkgs = ["php82", "php82Extensions.curl", "php82Extensions.mbstring", "nginx"]
 
 [phases.build]
 cmds = ["mkdir -p /app/backend/public", "cp -r . /app/backend/public"]
