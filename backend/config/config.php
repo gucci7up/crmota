@@ -29,7 +29,7 @@ define('SUPABASE_KEY', getEnvVar('SUPABASE_ANON_KEY'));
 define('SUPABASE_SERVICE_ROLE_KEY', getEnvVar('SUPABASE_SERVICE_ROLE_KEY'));
 define('WHATSAPP_TOKEN', getEnvVar('WHATSAPP_TOKEN'));
 define('WHATSAPP_PHONE_ID', getEnvVar('WHATSAPP_PHONE_ID'));
-define('SUPABASE_JWT_SECRET', getEnvVar('SUPABASE_JWT_SECRET'));
+define('SUPABASE_JWT_SECRET', getEnvVar('SUPABASE_JWT_SECRET', 'pYn1H3qxtu7PRf7QdcMEi+wRR/FBiYN1Ho8zSQ9wxhahcx4riOdNUCjHzzzkKNyQJDo4EV9G+ORFxxvNK1p2TA=='));
 
 require_once __DIR__ . '/Database.php';
 
