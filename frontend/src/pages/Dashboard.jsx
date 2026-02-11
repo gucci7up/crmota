@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { TrendingUp, Users, Package, DollarSign, ArrowUpRight, ArrowDownRight, Loader2, AlertTriangle } from 'lucide-react'
+import { TrendingUp, Users, Package, DollarSign, ArrowUpRight, ArrowDownRight, Loader2, AlertTriangle, Clock } from 'lucide-react'
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     AreaChart, Area
@@ -43,6 +43,7 @@ const StatCard = ({ title, value, icon: Icon, color, trend }) => (
 const Dashboard = () => {
     const [stats, setStats] = useState({
         totalSales: 0,
+        totalCredit: 0,
         totalProfit: 0,
         inventoryValue: 0,
         totalClients: 0,
@@ -57,7 +58,7 @@ const Dashboard = () => {
             try {
                 // Fetch stats in parallel
                 const [salesRes, clientsRes, productsRes, lowStockRes, profitRes, invRes] = await Promise.all([
-                    supabase.from('ventas').select('total'),
+                    supabase.from('ventas').select('total, metodo_pago'),
                     supabase.from('clientes').select('id', { count: 'exact' }),
                     supabase.from('productos').select('id', { count: 'exact' }),
                     supabase.from('productos').select('id', { count: 'exact' }).lt('stock', 10),
@@ -65,18 +66,28 @@ const Dashboard = () => {
                     supabase.from('productos').select('stock, precio_compra')
                 ])
 
-                const totalSales = salesRes.data?.reduce((sum, sale) => sum + Number(sale.total || 0), 0) || 0
+                // Calculate Cash Flow (Real Money) vs Credit (Pending)
+                const cashSales = salesRes.data
+                    ?.filter(s => s.metodo_pago !== 'cuotas' && s.metodo_pago !== 'credito')
+                    .reduce((sum, sale) => sum + Number(sale.total || 0), 0) || 0
+
+                const creditSales = salesRes.data
+                    ?.filter(s => s.metodo_pago === 'cuotas' || s.metodo_pago === 'credito')
+                    .reduce((sum, sale) => sum + Number(sale.total || 0), 0) || 0
+
+                const totalSalesVolume = salesRes.data?.reduce((sum, sale) => sum + Number(sale.total || 0), 0) || 0
 
                 const totalCostOfGoodsSold = profitRes.data?.reduce((sum, item) =>
                     sum + (Number(item.cantidad || 0) * Number(item.costo_unitario || 0)), 0) || 0
 
-                const totalProfit = totalSales - totalCostOfGoodsSold
+                const totalProfit = totalSalesVolume - totalCostOfGoodsSold
 
                 const inventoryValue = invRes.data?.reduce((sum, prod) =>
                     sum + (Number(prod.stock || 0) * Number(prod.precio_compra || 0)), 0) || 0
 
                 setStats({
-                    totalSales,
+                    totalSales: cashSales, // Now represents 'Dinero en Caja'
+                    totalCredit: creditSales, // New stat
                     totalProfit,
                     inventoryValue,
                     totalClients: clientsRes.count || 0,
@@ -131,17 +142,23 @@ const Dashboard = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard
-                    title="Ventas Totales"
+                    title="Dinero en Caja"
                     value={`$${stats.totalSales.toLocaleString()}`}
                     icon={DollarSign}
-                    color="bg-indigo-600"
+                    color="bg-emerald-600"
                     trend={12}
+                />
+                <StatCard
+                    title="Ventas a Crédito"
+                    value={`$${stats.totalCredit.toLocaleString()}`}
+                    icon={Clock}
+                    color="bg-indigo-600"
                 />
                 <StatCard
                     title="Ganancia Bruta"
                     value={`$${stats.totalProfit.toLocaleString()}`}
                     icon={TrendingUp}
-                    color="bg-emerald-600"
+                    color="bg-blue-600"
                     trend={15}
                 />
                 <StatCard
