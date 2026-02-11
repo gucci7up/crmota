@@ -103,38 +103,84 @@ const POS = () => {
         setCheckoutStatus(null)
 
         try {
-            const saleData = {
+            // 1. Crear Venta
+            const ventaData = {
                 usuario_id: user?.id,
+                cliente_id: selectedClient?.id || null,
                 total: total,
                 metodo_pago: metodoPago,
-                items: cart,
-                cliente_id: selectedClient?.id || null,
-                cliente_nombre: selectedClient?.nombre || 'Consumidor Final',
-                cliente_telefono: selectedClient?.telefono || null,
-                cuotas: finalCuotas
+                estado_pago: metodoPago === 'cuotas' ? 'pendiente' : 'pagado',
+                fecha_venta: new Date().toISOString()
             }
 
-            const response = await fetch('/api/ventas/crear', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(saleData)
-            })
+            const { data: venta, error: ventaError } = await supabase
+                .from('ventas')
+                .insert([ventaData])
+                .select()
+                .single()
 
-            const result = await response.json()
+            if (ventaError) throw ventaError
 
-            if (result.status === 'success') {
-                setCheckoutStatus('success')
-                setCart([])
-                setSelectedClient(null)
-                setIsCuotasModalOpen(false)
-                fetchProducts()
-                setTimeout(() => setCheckoutStatus(null), 3000)
-            } else {
-                throw new Error(result.error || 'Error al procesar venta')
+            // 2. Procesar Items (Detalle y Stock)
+            for (const item of cart) {
+                // Obtener costo actual
+                const { data: prodData } = await supabase
+                    .from('productos')
+                    .select('precio_compra, stock')
+                    .eq('id', item.id)
+                    .single()
+
+                const costoUnitario = prodData?.precio_compra || 0
+                const currentStock = prodData?.stock || 0
+
+                // Insertar Detalle
+                const { error: detalleError } = await supabase
+                    .from('detalle_ventas')
+                    .insert([{
+                        venta_id: venta.id,
+                        producto_id: item.id,
+                        cantidad: item.cantidad,
+                        precio_unitario: item.precio,
+                        costo_unitario: costoUnitario,
+                        subtotal: item.precio * item.cantidad
+                    }])
+
+                if (detalleError) throw detalleError
+
+                // Actualizar Stock
+                const { error: stockError } = await supabase
+                    .from('productos')
+                    .update({ stock: currentStock - item.cantidad })
+                    .eq('id', item.id)
+
+                if (stockError) console.error('Error updating stock', stockError)
             }
+
+            // 3. Insertar Cuotas si aplica
+            if (metodoPago === 'cuotas' && finalCuotas) {
+                const cuotasInserts = finalCuotas.map(c => ({
+                    venta_id: venta.id,
+                    monto: c.monto,
+                    fecha_vencimiento: c.fecha_vencimiento,
+                    estado: 'pendiente'
+                }))
+                const { error: cuotasError } = await supabase
+                    .from('cuotas')
+                    .insert(cuotasInserts)
+
+                if (cuotasError) throw cuotasError
+            }
+
+            setCheckoutStatus('success')
+            setCart([])
+            setSelectedClient(null)
+            setIsCuotasModalOpen(false)
+            fetchProducts()
+            setTimeout(() => setCheckoutStatus(null), 3000)
+
         } catch (error) {
             console.error('Error en checkout:', error)
-            alert(error.message)
+            alert('Error al procesar venta: ' + error.message)
             setCheckoutStatus('error')
         } finally {
             setIsCheckingOut(false)
@@ -147,9 +193,9 @@ const POS = () => {
     )
 
     return (
-        <div className="h-[calc(100vh-120px)] flex gap-8 animate-fade-in text-slate-900">
+        <div className="h-[calc(100vh-120px)] flex gap-6 animate-fade-in text-slate-900">
             <div className="flex-1 flex flex-col min-w-0">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                     <div>
                         <h1 className="text-3xl font-black text-slate-900 tracking-tight">Punto de Venta</h1>
                         <p className="text-slate-500 font-medium">Selecciona productos para la venta</p>
@@ -166,7 +212,7 @@ const POS = () => {
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto pr-2 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6 scrollbar-elegant">
+                <div className="flex-1 overflow-y-auto pr-2 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 scrollbar-elegant pb-20">
                     {loading ? (
                         <div className="col-span-full h-64 flex items-center justify-center">
                             <Loader2 className="animate-spin text-indigo-500" size={48} />
@@ -181,25 +227,38 @@ const POS = () => {
                             <div
                                 key={product.id}
                                 onClick={() => addToCart(product)}
-                                className="bg-white p-5 rounded-[2rem] border border-slate-200 hover:border-indigo-200 transition-all duration-300 cursor-pointer group relative overflow-hidden shadow-sm"
+                                className="bg-white p-4 rounded-[1.5rem] border border-slate-200 hover:border-indigo-400 hover:shadow-lg transition-all duration-300 cursor-pointer group relative overflow-hidden flex flex-col h-full"
                             >
-                                <div className="h-40 bg-slate-50 rounded-[1.5rem] mb-5 flex items-center justify-center text-slate-300 group-hover:bg-indigo-50 transition-colors">
-                                    <Package size={48} className="group-hover:scale-110 group-hover:text-indigo-600 transition-all duration-500" />
-                                </div>
-                                <div className="space-y-1">
-                                    <div className="flex items-center gap-2 text-[10px] font-bold text-indigo-600 uppercase tracking-widest bg-indigo-50 w-fit px-2.5 py-1 rounded-full border border-indigo-100">
-                                        <Tag size={10} />
-                                        Producto
-                                    </div>
-                                    <h3 className="font-bold text-slate-900 text-lg truncate pt-1">{product.nombre}</h3>
-                                    <div className="flex justify-between items-center mt-4">
-                                        <div className="flex flex-col">
-                                            <span className="text-xl font-black text-slate-900">${Number(product.precio).toFixed(2)}</span>
-                                            <span className={`text-xs font-bold ${product.stock < 10 ? 'text-rose-500' : 'text-slate-400'}`}>Stock: {product.stock}</span>
+                                <div className="h-32 bg-slate-50 rounded-2xl mb-3 flex items-center justify-center text-slate-300 group-hover:bg-indigo-50 transition-colors overflow-hidden relative">
+                                    {product.imagen_url ? (
+                                        <img
+                                            src={product.imagen_url}
+                                            alt={product.nombre}
+                                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                        />
+                                    ) : (
+                                        <Package size={32} className="group-hover:scale-110 group-hover:text-indigo-600 transition-all duration-500" />
+                                    )}
+                                    {product.stock <= product.stock_min && (
+                                        <div className="absolute top-2 right-2 bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm">
+                                            BAJO STOCK
                                         </div>
-                                        <button className="p-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-500 shadow-lg shadow-indigo-600/20 transition-all active:scale-90 text-white">
-                                            <Plus size={20} />
-                                        </button>
+                                    )}
+                                </div>
+                                <div className="space-y-1 flex-1 flex flex-col">
+                                    <div className="flex items-center gap-2 text-[8px] font-bold text-indigo-600 uppercase tracking-widest bg-indigo-50 w-fit px-2 py-0.5 rounded-full border border-indigo-100">
+                                        <Tag size={8} />
+                                        Prod
+                                    </div>
+                                    <h3 className="font-bold text-slate-900 text-sm leading-tight line-clamp-2">{product.nombre}</h3>
+                                    <div className="mt-auto pt-2 flex justify-between items-end">
+                                        <div className="flex flex-col">
+                                            <span className="text-lg font-black text-slate-900">${Number(product.precio).toLocaleString('es-CL')}</span>
+                                            <span className={`text-[10px] font-bold ${product.stock < 10 ? 'text-rose-500' : 'text-slate-400'}`}>Stock: {product.stock}</span>
+                                        </div>
+                                        <div className="p-2 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-500 transition-colors">
+                                            <Plus size={16} />
+                                        </div>
                                     </div>
                                 </div>
                             </div>
