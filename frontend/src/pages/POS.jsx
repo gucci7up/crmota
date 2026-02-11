@@ -32,7 +32,7 @@ const POS = () => {
             .eq('id', user.id)
             .single()
 
-        if (data?.iva_percentage) {
+        if (data?.iva_percentage !== undefined && data?.iva_percentage !== null) {
             setIvaRate(data.iva_percentage / 100)
         }
     }
