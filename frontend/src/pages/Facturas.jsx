@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { FileText, Search, Download, Filter, Eye, Tag, Loader2, Printer, X, CreditCard, Banknote, Bluetooth } from 'lucide-react'
 import InvoiceTemplate from '../components/InvoiceTemplate'
+import PrintPreviewModal from '../components/PrintPreviewModal'
 import { useReactToPrint } from 'react-to-print'
 import { printInvoiceBluetooth } from '../utils/EscPos'
 
