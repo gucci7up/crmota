@@ -12,17 +12,48 @@ class WhatsAppService
     private $token;
     private $phoneId;
 
-    public function __construct()
+    public function __construct($token, $phoneId)
     {
-        $this->token = $_ENV['WHATSAPP_TOKEN'];
-        $this->phoneId = $_ENV['WHATSAPP_PHONE_ID'];
+        $this->token = $token;
+        $this->phoneId = $phoneId;
+
+        if (!$this->token || !$this->phoneId) {
+            throw new Exception("Credenciales de WhatsApp no configuradas.");
+        }
+
         $this->client = new Client([
             'base_uri' => 'https://graph.facebook.com/v18.0/',
             'headers' => [
                 'Authorization' => 'Bearer ' . $this->token,
                 'Content-Type' => 'application/json',
-            ]
+            ],
+            // Disable SSL verification for local dev if needed, strictly for production use true
+            'verify' => false
         ]);
+    }
+
+    public function sendTextMessage($to, $message)
+    {
+        try {
+            $response = $this->client->post($this->phoneId . '/messages', [
+                'json' => [
+                    'messaging_product' => 'whatsapp',
+                    'recipient_type' => 'individual',
+                    'to' => $to,
+                    'type' => 'text',
+                    'text' => [
+                        'preview_url' => false,
+                        'body' => $message
+                    ]
+                ]
+            ]);
+
+            return json_decode($response->getBody()->getContents(), true);
+        } catch (Exception $e) {
+            error_log("Error enviando WhatsApp (Texto): " . $e->getMessage());
+            // Return error structure similar to success for consistency in controller handling
+            return ['error' => $e->getMessage()];
+        }
     }
 
     public function sendTemplateMessage($to, $templateName, $languageCode = 'es', $components = [])
@@ -43,7 +74,7 @@ class WhatsAppService
 
             return json_decode($response->getBody()->getContents(), true);
         } catch (Exception $e) {
-            error_log("Error enviando WhatsApp: " . $e->getMessage());
+            error_log("Error enviando WhatsApp (Plantilla): " . $e->getMessage());
             return ['error' => $e->getMessage()];
         }
     }

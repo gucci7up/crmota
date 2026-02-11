@@ -142,7 +142,26 @@ const WhatsApp = () => {
             {/* Sidebar de Chats */}
             <div className="w-96 border-r border-slate-100 flex flex-col bg-slate-50/30">
                 <div className="p-6 border-b border-slate-100 bg-white">
-                    <h2 className="text-2xl font-black text-slate-900 tracking-tight mb-4">Mensajes</h2>
+                    <h2 className="text-2xl font-black text-slate-900 tracking-tight mb-2">Mensajes</h2>
+
+                    {/* Connection Status */}
+                    <div className="mb-4">
+                        {profile?.whatsapp_phone_id ? (
+                            <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-2 rounded-lg border border-emerald-100">
+                                <span className="relative flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                </span>
+                                <span>Conectado: {profile.whatsapp_phone_id}</span>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-2 text-xs font-bold text-amber-600 bg-amber-50 px-3 py-2 rounded-lg border border-amber-100">
+                                <span className="h-2 w-2 rounded-full bg-amber-500"></span>
+                                <span>No configurado</span>
+                            </div>
+                        )}
+                    </div>
+
                     <div className="relative group">
                         <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={18} />
                         <input
