@@ -36,11 +36,17 @@ export const AuthProvider = ({ children }) => {
         setProfile(data)
     }
 
+    const signIn = (email, password) => supabase.auth.signInWithPassword({ email, password })
+    const signUp = (email, password, metadata) => supabase.auth.signUp({
+        email,
+        password,
+        options: { data: metadata }
+    })
     const signOut = () => supabase.auth.signOut()
 
     return (
-        <AuthContext.Provider value={{ user, profile, loading, signOut }}>
-            {!loading && children}
+        <AuthContext.Provider value={{ user, profile, loading, signIn, signUp, signOut }}>
+            {children}
         </AuthContext.Provider>
     )
 }

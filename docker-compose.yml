@@ -4,17 +4,20 @@ services:
   backend:
     build: ./backend
     ports:
-      - "8080:80"
-    env_file:
-      - ./backend/.env
-    volumes:
-      - ./backend:/var/www/html
+      - "8081:80"
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-https://mgxmrykceygiloicwsnc.supabase.co}
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:-sb_publishable_J1Fg5QteuBck-ZPqjfWjXA_d4DRiEEX}
     ports:
-      - "3000:80"
+      - "3001:80"
     depends_on:
       - backend

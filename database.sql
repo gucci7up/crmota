@@ -148,3 +148,21 @@ CREATE POLICY "Lectura para todos los autenticados" ON categorias FOR SELECT USI
 CREATE POLICY "Escritura para Admin" ON categorias ALL TO authenticated USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND rol = 'admin'));
 
 -- (Se añadirán más políticas específicas en la Parte 6 de seguridad avanzada)
+
+-- 13. Historial de Pagos (Abonos)
+CREATE TABLE historial_pagos (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    venta_id UUID REFERENCES ventas(id) ON DELETE SET NULL,
+    cuota_id UUID REFERENCES cuotas(id) ON DELETE SET NULL,
+    cliente_id UUID REFERENCES clientes(id) ON DELETE SET NULL,
+    usuario_id UUID REFERENCES auth.users(id),
+    monto DECIMAL(12,2) NOT NULL,
+    metodo_pago TEXT CHECK (metodo_pago IN ('efectivo', 'tarjeta', 'transferencia', 'otro')),
+    referencia TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE historial_pagos ENABLE ROW LEVEL SECURITY;
+ CREATE POLICY "Lectura historial pagos" ON historial_pagos FOR SELECT USING (auth.role() = 'authenticated');
+ CREATE POLICY "Escritura historial pagos" ON historial_pagos FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
