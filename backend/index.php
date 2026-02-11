@@ -1,6 +1,11 @@
 <?php
 // backend/index.php
 
+// DEBUG PROBE: Uncomment to test if PHP is alive
+// header("Content-Type: application/json");
+// echo json_encode(["status" => "PHP is running", "env" => getenv('SUPABASE_URL') ? "loaded" : "missing"]);
+// exit;
+
 // Enable error reporting for debugging
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
