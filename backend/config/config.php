@@ -8,9 +8,12 @@ $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
 $dotenv->safeLoad();
 
 define('SUPABASE_URL', $_ENV['SUPABASE_URL'] ?? '');
-define('SUPABASE_KEY', $_ENV['SUPABASE_SERVICE_ROLE_KEY'] ?? ''); // Usar service role para operaciones administrativas si es necesario
+define('SUPABASE_KEY', $_ENV['SUPABASE_ANON_KEY'] ?? ''); // Usar Anon Key como base
+define('SUPABASE_SERVICE_ROLE_KEY', $_ENV['SUPABASE_SERVICE_ROLE_KEY'] ?? '');
 define('WHATSAPP_TOKEN', $_ENV['WHATSAPP_TOKEN'] ?? '');
 define('WHATSAPP_PHONE_ID', $_ENV['WHATSAPP_PHONE_ID'] ?? '');
+
+require_once __DIR__ . '/Database.php';
 
 // Headers CORS
 header("Access-Control-Allow-Origin: *");
