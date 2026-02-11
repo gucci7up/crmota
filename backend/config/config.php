@@ -3,25 +3,29 @@
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-// Cargar variables de entorno (simulado o via .env)
-$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
-$dotenv->safeLoad();
+// Function to safely get env vars
+function getEnvVar($key, $default = '')
+{
+    $val = getenv($key);
+    return ($val !== false) ? $val : ($_ENV[$key] ?? $default);
+}
 
-define('SUPABASE_URL', $_ENV['SUPABASE_URL'] ?? '');
-define('SUPABASE_KEY', $_ENV['SUPABASE_ANON_KEY'] ?? ''); // Usar Anon Key como base
-define('SUPABASE_SERVICE_ROLE_KEY', $_ENV['SUPABASE_SERVICE_ROLE_KEY'] ?? '');
-define('WHATSAPP_TOKEN', $_ENV['WHATSAPP_TOKEN'] ?? '');
-define('WHATSAPP_PHONE_ID', $_ENV['WHATSAPP_PHONE_ID'] ?? '');
+// Load env if .env exists (dev mode)
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
+try {
+    $dotenv->safeLoad();
+} catch (Exception $e) {
+    // Ignore if .env missing
+}
+
+define('SUPABASE_URL', getEnvVar('SUPABASE_URL'));
+define('SUPABASE_KEY', getEnvVar('SUPABASE_ANON_KEY'));
+define('SUPABASE_SERVICE_ROLE_KEY', getEnvVar('SUPABASE_SERVICE_ROLE_KEY'));
+define('WHATSAPP_TOKEN', getEnvVar('WHATSAPP_TOKEN'));
+define('WHATSAPP_PHONE_ID', getEnvVar('WHATSAPP_PHONE_ID'));
+define('SUPABASE_JWT_SECRET', getEnvVar('SUPABASE_JWT_SECRET'));
 
 require_once __DIR__ . '/Database.php';
 
-// Headers CORS
-header("Access-Control-Allow-Origin: *");
-header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Methods: OPTIONS,GET,POST,PUT,DELETE");
-header("Access-Control-Max-Age: 3600");
-header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
+// Note: CORS headers are handled in index.php to ensure they run for all requests
 
-if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
-    exit;
-}
