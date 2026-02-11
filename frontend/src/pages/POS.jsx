@@ -226,7 +226,7 @@ const POS = () => {
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto pr-2 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6 gap-3 scrollbar-elegant pb-20">
+                <div className="flex-1 overflow-y-auto pr-2 grid grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-2 scrollbar-elegant pb-20">
                     {loading ? (
                         <div className="col-span-full h-64 flex items-center justify-center">
                             <Loader2 className="animate-spin text-indigo-500" size={48} />
@@ -241,9 +241,9 @@ const POS = () => {
                             <div
                                 key={product.id}
                                 onClick={() => addToCart(product)}
-                                className="bg-white p-2 rounded-xl border border-slate-200 hover:border-indigo-400 hover:shadow-md transition-all duration-200 cursor-pointer group relative overflow-hidden flex flex-col items-center text-center aspect-[4/5] justify-between h-full hover:scale-[1.02]"
+                                className="bg-white p-2 rounded-lg border border-slate-200 hover:border-indigo-400 hover:shadow-md transition-all duration-200 cursor-pointer group relative overflow-hidden flex flex-col items-center text-center h-full hover:scale-[1.02]"
                             >
-                                <div className="w-full aspect-square bg-slate-50 rounded-lg mb-2 flex items-center justify-center text-slate-300 group-hover:bg-indigo-50 transition-colors overflow-hidden relative">
+                                <div className="w-full h-24 bg-slate-50 rounded-md mb-1 flex items-center justify-center text-slate-300 group-hover:bg-indigo-50 transition-colors overflow-hidden relative">
                                     {product.imagen_url ? (
                                         <img
                                             src={product.imagen_url}
@@ -260,13 +260,13 @@ const POS = () => {
                                     )}
                                 </div>
                                 <div className="w-full flex-1 flex flex-col justify-between items-center gap-1">
-                                    <h3 className="font-bold text-slate-800 text-[10px] leading-tight line-clamp-2 w-full">{product.nombre}</h3>
-                                    <div className="w-full flex justify-between items-end border-t border-slate-100 pt-1 mt-auto">
+                                    <h3 className="font-bold text-slate-800 text-[10px] leading-tight line-clamp-2 w-full h-6">{product.nombre}</h3>
+                                    <div className="w-full flex justify-between items-center border-t border-slate-100 pt-1 mt-auto">
                                         <div className="flex flex-col items-start leading-none">
                                             <span className="text-xs font-black text-slate-900">${Number(product.precio).toLocaleString('es-CL')}</span>
                                             <span className={`text-[8px] font-bold ${product.stock < 10 ? 'text-rose-500' : 'text-slate-400'}`}>Stock: {product.stock}</span>
                                         </div>
-                                        <div className="p-1 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-500 transition-colors">
+                                        <div className="p-1 bg-indigo-600 text-white rounded shadow-sm hover:bg-indigo-500 transition-colors">
                                             <Plus size={10} />
                                         </div>
                                     </div>
