@@ -87,15 +87,12 @@ const POS = () => {
     const tax = subtotal * ivaRate
     const total = subtotal + tax
 
-    const generateCuotas = () => {
-        if (!selectedClient) {
-            alert('Debe seleccionar un cliente para ventas a cuotas')
-            return
-        }
+    const calculatePlan = (n) => {
+        if (!selectedClient) return []
 
-        const cuotaMonto = total / numCuotas
+        const cuotaMonto = total / n
         const generated = []
-        for (let i = 1; i <= numCuotas; i++) {
+        for (let i = 1; i <= n; i++) {
             const date = new Date()
             date.setMonth(date.getMonth() + i)
             generated.push({
@@ -103,7 +100,22 @@ const POS = () => {
                 fecha_vencimiento: date.toISOString().split('T')[0]
             })
         }
-        setCuotasData(generated)
+        return generated
+    }
+
+    // Effect to update plan immediately when numCuotas changes
+    useEffect(() => {
+        if (isCuotasModalOpen && selectedClient) {
+            setCuotasData(calculatePlan(numCuotas))
+        }
+    }, [numCuotas, isCuotasModalOpen, selectedClient, total])
+
+    const openCuotasModal = () => {
+        if (!selectedClient) {
+            alert('Debe seleccionar un cliente para ventas a cuotas')
+            return
+        }
+        setNumCuotas(3) // Default to 3, but calculation will trigger via effect
         setIsCuotasModalOpen(true)
     }
 
@@ -370,7 +382,7 @@ const POS = () => {
                             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tarjeta</span>
                         </button>
                         <button
-                            onClick={generateCuotas}
+                            onClick={openCuotasModal}
                             disabled={isCheckingOut || cart.length === 0}
                             className={`flex flex-col items-center gap-2 p-3 rounded-2xl border transition-colors disabled:opacity-50 shadow-sm ${selectedClient ? 'bg-indigo-50 border-indigo-200 hover:bg-indigo-100' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
                         >
