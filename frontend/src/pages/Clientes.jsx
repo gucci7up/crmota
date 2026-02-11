@@ -177,8 +177,10 @@ const Clientes = () => {
                 return
             }
 
-            // Use standalone endpoint to bypass router issues
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/process_payment.php`, {
+            // FAILSAFE STRATEGY: Hit index.php directly with action param
+            // This bypasses Nginx sub-path routing issues
+            const apiBase = import.meta.env.VITE_API_URL.replace(/\/api\/?$/, ''); // Remove trailing /api if present
+            const response = await fetch(`${apiBase}/index.php?action=process_payment`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
