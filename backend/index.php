@@ -6,6 +6,13 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
+// Pre-flight check for dependencies
+if (!file_exists(__DIR__ . '/vendor/autoload.php')) {
+    http_response_code(500);
+    echo json_encode(["error" => "Critical: vendor/autoload.php not found. Run 'composer install'."]);
+    exit;
+}
+
 require_once __DIR__ . '/config/config.php';
 require_once __DIR__ . '/middleware/AuthMiddleware.php';
 
