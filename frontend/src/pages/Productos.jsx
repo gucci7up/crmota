@@ -72,32 +72,28 @@ const Productos = () => {
     const uploadImage = async () => {
         if (!imageFile) return formData.imagen_url
 
-        const uploadFormData = new FormData()
-        uploadFormData.append('file', imageFile)
-
         try {
-            // Use relative path to match POS.jsx logic (assuming proxy or same-origin)
-            const response = await fetch('/api/upload', {
-                method: 'POST',
-                body: uploadFormData
-            })
+            const fileExt = imageFile.name.split('.').pop()
+            const fileName = `${Math.random()}.${fileExt}`
+            const filePath = `${fileName}`
 
-            if (!response.ok) {
-                const text = await response.text()
-                console.error('Upload failed with status ' + response.status + ':', text)
-                try {
-                    const errorData = JSON.parse(text)
-                    throw new Error(errorData.error || 'Error subiendo imagen')
-                } catch (e) {
-                    throw new Error('Error subiendo imagen: ' + response.statusText)
-                }
-            }
+            // DIRECT SUPABASE STORAGE
+            // User must create a public bucket named 'productos'
+            const { data, error } = await supabase.storage
+                .from('productos')
+                .upload(filePath, imageFile)
 
-            const data = await response.json()
-            return data.url
+            if (error) throw error
+
+            // Get Public URL
+            const { data: { publicUrl } } = supabase.storage
+                .from('productos')
+                .getPublicUrl(filePath)
+
+            return publicUrl
         } catch (error) {
             console.error('Error uploading image:', error)
-            throw error
+            throw new Error('Error al subir imagen a Supabase Storage: ' + error.message)
         }
     }
 
@@ -107,6 +103,9 @@ const Productos = () => {
         try {
             const imageUrl = await uploadImage()
             const finalData = { ...formData, imagen_url: imageUrl }
+
+            // Remove ID if empty to avoid issues in insert
+            if (!finalData.id) delete finalData.id
 
             if (editingProduct) {
                 const { error } = await supabase
@@ -122,6 +121,7 @@ const Productos = () => {
             }
             fetchData()
             setIsModalOpen(false)
+            alert('Producto guardado con éxito')
         } catch (error) {
             console.error('Error saving product:', error)
             alert('Error al guardar producto: ' + error.message)
