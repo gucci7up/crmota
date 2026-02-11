@@ -1,5 +1,8 @@
 [phases.setup]
-nixPkgs = ["php82", "php82Extensions.curl", "php82Extensions.mbstring", "nginx"]
+nixPkgs = ["php82", "php82Extensions.curl", "php82Extensions.mbstring", "php82Extensions.openssl", "nginx", "composer"]
+
+[phases.install]
+cmds = ["composer install --no-dev --optimize-autoloader --ignore-platform-reqs"]
 
 [phases.build]
 cmds = ["mkdir -p /app/backend/public", "cp -r . /app/backend/public"]
