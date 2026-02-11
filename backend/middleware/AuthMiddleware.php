@@ -21,9 +21,11 @@ class AuthMiddleware
 
         try {
             // Supabase usa RS256 o HS256. El secreto de JWT de Supabase se usa para HS256.
-            $secret = getenv('SUPABASE_JWT_SECRET');
+            // Prioritize the constant defined in config.php which handles .env loading
+            $secret = defined('SUPABASE_JWT_SECRET') ? SUPABASE_JWT_SECRET : getenv('SUPABASE_JWT_SECRET');
+
             if (!$secret) {
-                throw new Exception("JWT Secret not configured on server");
+                throw new Exception("JWT Secret not configured on server (Check SUPABASE_JWT_SECRET)");
             }
             $decoded = JWT::decode($jwt, new Key($secret, 'HS256'));
             return $decoded;
