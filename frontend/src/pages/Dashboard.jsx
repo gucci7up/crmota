@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { TrendingUp, Users, Package, DollarSign, ArrowUpRight, ArrowDownRight, Loader2 } from 'lucide-react'
+import { TrendingUp, Users, Package, DollarSign, ArrowUpRight, ArrowDownRight, Loader2, AlertTriangle } from 'lucide-react'
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     AreaChart, Area
