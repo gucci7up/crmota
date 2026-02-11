@@ -4,10 +4,13 @@ RUN apt-get update && apt-get install -y \
     libpng-dev \
     libjpeg-dev \
     libfreetype6-dev \
+    libcurl4-openssl-dev \
+    libxml2-dev \
+    libonig-dev \
     zip \
     unzip \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install gd pdo pdo_mysql
+    && docker-php-ext-install gd pdo pdo_mysql curl mbstring xml
 
 RUN a2enmod rewrite
 
