@@ -56,7 +56,7 @@ class WhatsAppController
 
         // Usamos la clase Database para obtener las credenciales del perfil
         $profileResponse = \Database::query('profiles', [
-            'select' => 'whatsapp_token,whatsapp_phone_id',
+            'select' => 'whatsapp_token,whatsapp_phone_id,whatsapp_verify_token',
             'id' => 'eq.' . $userId,
             'limit' => 1
         ]);
@@ -70,16 +70,17 @@ class WhatsAppController
         $profile = $profileResponse['data'][0];
         $token = $profile['whatsapp_token'] ?? '';
         $phoneId = $profile['whatsapp_phone_id'] ?? '';
+        $productId = $profile['whatsapp_verify_token'] ?? '';
 
-        if (!$token || !$phoneId) {
+        if (!$token || !$phoneId || !$productId) {
             http_response_code(400);
-            echo json_encode(["status" => "error", "message" => "Credenciales de WhatsApp no configuradas. Ve a Configuración."]);
+            echo json_encode(["status" => "error", "message" => "Credenciales de Maytapi no configuradas. Ve a Configuración."]);
             return;
         }
 
         try {
             require_once __DIR__ . '/../services/WhatsAppService.php';
-            $ws = new \App\Services\WhatsAppService($token, $phoneId);
+            $ws = new \App\Services\WhatsAppService($token, $phoneId, $productId);
 
             $result = $ws->sendTextMessage($phone, $message);
 
@@ -113,7 +114,7 @@ class WhatsAppController
         $userId = $userData['sub'];
 
         $profileResponse = \Database::query('profiles', [
-            'select' => 'whatsapp_token,whatsapp_phone_id',
+            'select' => 'whatsapp_token,whatsapp_phone_id,whatsapp_verify_token',
             'id' => 'eq.' . $userId,
             'limit' => 1
         ]);
@@ -127,9 +128,10 @@ class WhatsAppController
         $profile = $profileResponse['data'][0];
         $token = $profile['whatsapp_token'] ?? '';
         $phoneId = $profile['whatsapp_phone_id'] ?? '';
+        $productId = $profile['whatsapp_verify_token'] ?? '';
         $empresa = $profile['empresa_nombre'] ?? 'CRMota';
 
-        if (!$token || !$phoneId) {
+        if (!$token || !$phoneId || !$productId) {
             http_response_code(400);
             echo json_encode(["status" => "error", "message" => "Credenciales no configuradas"]);
             return;
@@ -137,7 +139,7 @@ class WhatsAppController
 
         try {
             require_once __DIR__ . '/../services/WhatsAppService.php';
-            $ws = new \App\Services\WhatsAppService($token, $phoneId);
+            $ws = new \App\Services\WhatsAppService($token, $phoneId, $productId);
 
             // TODO: Obtener datos reales de la orden/factura si es necesario
             $total = 0; // Placeholder

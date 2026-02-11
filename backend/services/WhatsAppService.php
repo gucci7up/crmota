@@ -11,23 +11,25 @@ class WhatsAppService
     private $client;
     private $token;
     private $phoneId;
+    private $productId;
 
-    public function __construct($token, $phoneId)
+    public function __construct($token, $phoneId, $productId)
     {
         $this->token = $token;
         $this->phoneId = $phoneId;
+        $this->productId = $productId;
 
-        if (!$this->token || !$this->phoneId) {
-            throw new Exception("Credenciales de WhatsApp no configuradas.");
+        if (!$this->token || !$this->phoneId || !$this->productId) {
+            throw new Exception("Credenciales de Maytapi no configuradas.");
         }
 
         $this->client = new Client([
-            'base_uri' => 'https://graph.facebook.com/v18.0/',
+            'base_uri' => 'https://api.maytapi.com/api/',
             'headers' => [
-                'Authorization' => 'Bearer ' . $this->token,
+                'x-maytapi-key' => $this->token,
                 'Content-Type' => 'application/json',
             ],
-            // Disable SSL verification for local dev if needed, strictly for production use true
+            // Disable SSL verification for local dev if needed
             'verify' => false
         ]);
     }
@@ -35,23 +37,18 @@ class WhatsAppService
     public function sendTextMessage($to, $message)
     {
         try {
-            $response = $this->client->post($this->phoneId . '/messages', [
+            // Maytapi format: /api/{product_id}/{phone_id}/sendMessage
+            $response = $this->client->post("{$this->productId}/{$this->phoneId}/sendMessage", [
                 'json' => [
-                    'messaging_product' => 'whatsapp',
-                    'recipient_type' => 'individual',
-                    'to' => $to,
+                    'to_number' => $to,
                     'type' => 'text',
-                    'text' => [
-                        'preview_url' => false,
-                        'body' => $message
-                    ]
+                    'message' => $message
                 ]
             ]);
 
             return json_decode($response->getBody()->getContents(), true);
         } catch (Exception $e) {
-            error_log("Error enviando WhatsApp (Texto): " . $e->getMessage());
-            // Return error structure similar to success for consistency in controller handling
+            error_log("Error enviando Maytapi (Texto): " . $e->getMessage());
             return ['error' => $e->getMessage()];
         }
     }

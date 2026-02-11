@@ -171,45 +171,46 @@ const Configuracion = () => {
                     </div>
                 </div>
 
-                {/* WhatsApp Cloud API */}
+                {/* WhatsApp / Maytapi Configuration */}
                 <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 space-y-8 shadow-sm">
                     <div className="flex items-center gap-4">
                         <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl border border-emerald-100 shadow-sm">
                             <MessageCircle size={24} />
                         </div>
-                        <h2 className="text-xl font-black text-slate-900">WhatsApp Cloud API</h2>
+                        <h2 className="text-xl font-black text-slate-900">Maytapi / WhatsApp (No-Official)</h2>
                     </div>
 
                     <div className="space-y-6">
                         <div className="space-y-2">
-                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Access Token (Permanente)</label>
+                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Maytapi API Token</label>
                             <input
                                 type="password"
                                 className="w-full px-5 py-4 glass border-white/5 rounded-2xl focus:ring-2 focus:ring-emerald-500/50 outline-none text-white font-medium"
                                 value={config.whatsapp_token}
                                 onChange={(e) => setConfig({ ...config, whatsapp_token: e.target.value })}
-                                placeholder="EAABw..."
+                                placeholder="Token de API Maytapi"
                             />
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Phone Number ID</label>
+                                <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Phone ID (Maytapi)</label>
                                 <input
                                     type="text"
                                     className="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500/20 outline-none text-slate-900 font-bold placeholder:text-slate-300 transition-all font-medium"
                                     value={config.whatsapp_phone_id}
                                     onChange={(e) => setConfig({ ...config, whatsapp_phone_id: e.target.value })}
+                                    placeholder="ID del Teléfono"
                                 />
-                                admissions: []
                             </div>
                             <div className="space-y-2">
-                                <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Webhook Verify Token</label>
+                                <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Product ID (Maytapi)</label>
                                 <input
                                     type="text"
                                     className="w-full px-5 py-4 glass border-white/5 rounded-2xl focus:ring-2 focus:ring-emerald-500/50 outline-none text-white font-medium"
                                     value={config.whatsapp_verify_token}
                                     onChange={(e) => setConfig({ ...config, whatsapp_verify_token: e.target.value })}
+                                    placeholder="ID de Producto"
                                 />
                             </div>
                         </div>
@@ -217,7 +218,7 @@ const Configuracion = () => {
                         <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-start gap-3">
                             <ShieldCheck className="text-emerald-600 shrink-0" size={18} />
                             <p className="text-[10px] font-black text-slate-400 italic">
-                                Estos datos son necesarios para que el sistema pueda enviar notificaciones automáticas de ventas a tus clientes vía WhatsApp.
+                                Usamos Maytapi como pasarela para WhatsApp. Asegúrate de que tu instancia esté conectada (QR escaneado) en el panel de Maytapi.
                             </p>
                         </div>
                     </div>
