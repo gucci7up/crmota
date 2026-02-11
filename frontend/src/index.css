@@ -124,7 +124,7 @@ body {
   .invoice-container-a4 {
     position: relative;
     max-width: 210mm !important;
-    width: 100% !important;
+    width: 210mm !important;
     padding: 20mm !important;
     margin: 0 auto !important;
     background: white !important;
