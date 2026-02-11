@@ -177,7 +177,8 @@ const Clientes = () => {
                 return
             }
 
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/pagos/registrar`, {
+            // Use standalone endpoint to bypass router issues
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/process_payment.php`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
