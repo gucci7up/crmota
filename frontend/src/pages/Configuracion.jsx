@@ -54,8 +54,7 @@ const Configuracion = () => {
         try {
             // TEMPORARY FIX: Only saving IVA as requested by user to debug
             const updates = {
-                iva_percentage: config.iva_percentage,
-                updated_at: new Date()
+                iva_percentage: config.iva_percentage
             }
 
             const { error } = await supabase
