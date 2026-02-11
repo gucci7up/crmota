@@ -52,9 +52,16 @@ const Configuracion = () => {
         e.preventDefault()
         setIsSaving(true)
         try {
-            // TEMPORARY FIX: Only saving IVA as requested by user to debug
             const updates = {
-                iva_percentage: config.iva_percentage
+                empresa_nombre: config.empresa_nombre,
+                empresa_email: config.empresa_email,
+                empresa_telefono: config.empresa_telefono,
+                empresa_direccion: config.empresa_direccion,
+                iva_percentage: config.iva_percentage,
+                whatsapp_token: config.whatsapp_token,
+                whatsapp_phone_id: config.whatsapp_phone_id,
+                whatsapp_verify_token: config.whatsapp_verify_token
+                // updated_at removed to avoid schema error
             }
 
             const { error } = await supabase
@@ -63,7 +70,7 @@ const Configuracion = () => {
                 .eq('id', user.id)
 
             if (error) throw error
-            alert('Configuración (IVA) guardada correctamente')
+            alert('Configuración guardada correctamente')
         } catch (error) {
             console.error('Error saving config:', error)
             alert(`Error: ${error.message || error.details || error.hint || 'Revise la consola'}`)
