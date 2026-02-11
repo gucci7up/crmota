@@ -17,12 +17,12 @@ function getEnvVar($key, $default = '')
 }
 
 // Load env if .env exists (dev mode)
-$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
-try {
-    $dotenv->safeLoad();
-} catch (Exception $e) {
-    // Ignore if .env missing
-}
+// $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
+// try {
+//     $dotenv->safeLoad();
+// } catch (Exception $e) {
+//     // Ignore if .env missing
+// }
 
 define('SUPABASE_URL', getEnvVar('SUPABASE_URL'));
 define('SUPABASE_KEY', getEnvVar('SUPABASE_ANON_KEY'));
