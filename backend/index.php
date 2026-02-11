@@ -84,6 +84,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 $request_method = $_SERVER['REQUEST_METHOD'];
 $request_uri = $_SERVER['REQUEST_URI'];
 
+// Parse URL
+$path = parse_url($request_uri, PHP_URL_PATH);
+$path_parts = explode('/', trim($path, '/'));
+
+// Define Module and Action from path (for controller routing)
+$module = $path_parts[1] ?? '';
+$action = $path_parts[2] ?? '';
+
 // BYPASS: Direct File Serving for process_payment.php
 // This handles cases where rewrite rules force everything to index.php
 $direct_files = ['process_payment.php', 'verify_payment_endpoint.php', 'debug_env.php'];
