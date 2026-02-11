@@ -414,7 +414,7 @@ const POS = () => {
                             <div>
                                 <label className="text-xs font-black text-slate-400 uppercase tracking-widest block mb-3">Número de Cuotas</label>
                                 <div className="flex gap-2">
-                                    {[2, 3, 4, 6, 12].map(n => (
+                                    {[1, 2, 3, 4, 6, 12].map(n => (
                                         <button
                                             key={n}
                                             onClick={() => setNumCuotas(n)}
