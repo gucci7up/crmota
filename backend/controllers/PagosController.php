@@ -38,29 +38,8 @@ class PagosController
         }
 
         try {
-            // 1. Obtener todas las cuotas pendientes del cliente (ordenadas por fecha_vencimiento ASC)
-            $response = Database::query('cuotas', [
-                'select' => 'id, monto, monto_pagado, fecha_vencimiento, estado, venta_id',
-                'venta_id.cliente_id' => $cliente_id, // Join implícito en Supabase si está bien configurado el FK, sino mejor filtrar por ventas
-                'order' => 'fecha_vencimiento.asc'
-                // Nota: El filtro directo por cliente_id en cuotas requiere un join. 
-                // Simplificación: Traemos las cuotas vinculadas a ventas de este cliente.
-                // Supabase PostgREST sintaxis para nested filter: ventas!inner(cliente_id)
-            ]);
-
-            // Corrección: Usar la relación para filtrar.
-            // URL params: select=*,ventas!inner(cliente_id)&ventas.cliente_id=eq.UUID&order=fecha_vencimiento.asc
-            // Dado que Database::query es un wrapper simple, construyamos la query param manualmente o ajustemos el wrapper.
-            // Ajuste temporal: Traer todas las ventas del cliente y luego sus cuotas, o usar una query más precisa.
-
-            // Opción B: Query directa a `cuotas` filtrando por las ventas del cliente.
-            // Para asegurar precisión y evitar complejidad en el wrapper simple, haremos:
-            // 1. Obtener ventas con deuda. 
-            // 2. Obtener cuotas de esas ventas.
-
-            // Mejor opción con el wrapper actual:
-            // "ventas?select=id,cuotas(*)&cliente_id=eq.$cliente_id"
-
+            // URL params: select=id,cuotas(*)&cliente_id=eq.UUID&metodo_pago=eq.cuotas
+            // Note: We use manual cURL here for precise control over the nested select syntax
             $url = SUPABASE_URL . "/rest/v1/ventas?select=id,cuotas(*)&cliente_id=eq.$cliente_id&metodo_pago=eq.cuotas";
 
             $ch = curl_init($url);
@@ -70,13 +49,27 @@ class PagosController
                 "Authorization: Bearer " . SUPABASE_KEY,
             ]);
             $resp = curl_exec($ch);
+            $curlError = curl_error($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             curl_close($ch);
+
+            if ($resp === false) {
+                throw new Exception("Error connecting to Supabase: " . $curlError);
+            }
+
+            if ($httpCode >= 400) {
+                throw new Exception("Supabase Error ($httpCode): " . $resp);
+            }
 
             $ventas = json_decode($resp, true);
 
+            if (!is_array($ventas)) {
+                throw new Exception("Invalid response from Supabase when fetching debt details: " . substr($resp, 0, 100));
+            }
+
             $allCuotas = [];
             foreach ($ventas as $venta) {
-                if (!empty($venta['cuotas'])) {
+                if (!empty($venta['cuotas']) && is_array($venta['cuotas'])) {
                     foreach ($venta['cuotas'] as $c) {
                         if ($c['estado'] !== 'pagado') {
                             $c['venta_id'] = $venta['id']; // Inject parent venta_id
