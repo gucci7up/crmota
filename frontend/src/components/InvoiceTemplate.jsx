@@ -36,7 +36,7 @@ const InvoiceTemplate = forwardRef(({ venta, format = 'a4' }, ref) => {
         : { backgroundColor: colors.white, padding: '40px', maxWidth: '896px', margin: '0 auto', color: colors.slate900 }
 
     return (
-        <div ref={ref} style={containerStyle}>
+        <div ref={ref} style={containerStyle} className={!isThermal ? "invoice-container-a4" : ""}>
             {/* Header */}
             <div style={{
                 textAlign: 'center',
