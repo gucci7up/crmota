@@ -81,6 +81,8 @@ const Dashboard = () => {
                     ?.filter(s => s.metodo_pago === 'cuotas' || s.metodo_pago === 'credito')
                     .reduce((sum, sale) => sum + Number(sale.total || 0), 0) || 0
 
+                const outstandingCredit = creditSales - collectedCredit
+
                 const totalSalesVolume = salesRes.data?.reduce((sum, sale) => sum + Number(sale.total || 0), 0) || 0
 
                 const totalCostOfGoodsSold = profitRes.data?.reduce((sum, item) =>
@@ -93,7 +95,7 @@ const Dashboard = () => {
 
                 setStats({
                     totalSales: totalCashOnHand, // Real money in hand (Cash Sales + Collected Credit)
-                    totalCredit: creditSales, // Total volume sold on credit
+                    totalCredit: outstandingCredit, // Outstanding Debt (Total Credit Sales - Paid)
                     totalProfit,
                     inventoryValue,
                     totalClients: clientsRes.count || 0,
