@@ -226,7 +226,7 @@ const POS = () => {
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto pr-2 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 scrollbar-elegant pb-20">
+                <div className="flex-1 overflow-y-auto pr-2 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6 gap-3 scrollbar-elegant pb-20">
                     {loading ? (
                         <div className="col-span-full h-64 flex items-center justify-center">
                             <Loader2 className="animate-spin text-indigo-500" size={48} />
@@ -241,9 +241,9 @@ const POS = () => {
                             <div
                                 key={product.id}
                                 onClick={() => addToCart(product)}
-                                className="bg-white p-4 rounded-[1.5rem] border border-slate-200 hover:border-indigo-400 hover:shadow-lg transition-all duration-300 cursor-pointer group relative overflow-hidden flex flex-col h-full"
+                                className="bg-white p-2 rounded-xl border border-slate-200 hover:border-indigo-400 hover:shadow-md transition-all duration-200 cursor-pointer group relative overflow-hidden flex flex-col items-center text-center aspect-[4/5] justify-between h-full hover:scale-[1.02]"
                             >
-                                <div className="h-32 bg-slate-50 rounded-2xl mb-3 flex items-center justify-center text-slate-300 group-hover:bg-indigo-50 transition-colors overflow-hidden relative">
+                                <div className="w-full aspect-square bg-slate-50 rounded-lg mb-2 flex items-center justify-center text-slate-300 group-hover:bg-indigo-50 transition-colors overflow-hidden relative">
                                     {product.imagen_url ? (
                                         <img
                                             src={product.imagen_url}
@@ -251,27 +251,23 @@ const POS = () => {
                                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                                         />
                                     ) : (
-                                        <Package size={32} className="group-hover:scale-110 group-hover:text-indigo-600 transition-all duration-500" />
+                                        <Package size={20} className="group-hover:scale-110 group-hover:text-indigo-600 transition-all duration-500" />
                                     )}
                                     {product.stock <= product.stock_min && (
-                                        <div className="absolute top-2 right-2 bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm">
-                                            BAJO STOCK
+                                        <div className="absolute top-1 right-1 bg-rose-500 text-white text-[8px] font-black px-1 py-0.5 rounded shadow-sm leading-none">
+                                            !
                                         </div>
                                     )}
                                 </div>
-                                <div className="space-y-1 flex-1 flex flex-col">
-                                    <div className="flex items-center gap-2 text-[8px] font-bold text-indigo-600 uppercase tracking-widest bg-indigo-50 w-fit px-2 py-0.5 rounded-full border border-indigo-100">
-                                        <Tag size={8} />
-                                        Prod
-                                    </div>
-                                    <h3 className="font-bold text-slate-900 text-sm leading-tight line-clamp-2">{product.nombre}</h3>
-                                    <div className="mt-auto pt-2 flex justify-between items-end">
-                                        <div className="flex flex-col">
-                                            <span className="text-lg font-black text-slate-900">${Number(product.precio).toLocaleString('es-CL')}</span>
-                                            <span className={`text-[10px] font-bold ${product.stock < 10 ? 'text-rose-500' : 'text-slate-400'}`}>Stock: {product.stock}</span>
+                                <div className="w-full flex-1 flex flex-col justify-between items-center gap-1">
+                                    <h3 className="font-bold text-slate-800 text-[10px] leading-tight line-clamp-2 w-full">{product.nombre}</h3>
+                                    <div className="w-full flex justify-between items-end border-t border-slate-100 pt-1 mt-auto">
+                                        <div className="flex flex-col items-start leading-none">
+                                            <span className="text-xs font-black text-slate-900">${Number(product.precio).toLocaleString('es-CL')}</span>
+                                            <span className={`text-[8px] font-bold ${product.stock < 10 ? 'text-rose-500' : 'text-slate-400'}`}>Stock: {product.stock}</span>
                                         </div>
-                                        <div className="p-2 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-500 transition-colors">
-                                            <Plus size={16} />
+                                        <div className="p-1 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-500 transition-colors">
+                                            <Plus size={10} />
                                         </div>
                                     </div>
                                 </div>
